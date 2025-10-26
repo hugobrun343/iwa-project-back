@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * DTO for Announcement response.
@@ -15,7 +14,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AnnouncementResponseDto {
+public class PublicAnnouncementResponseDto {
     /**
      * Id.
      */
@@ -36,10 +35,6 @@ public class AnnouncementResponseDto {
      * Description.
      */
     private String description;
-    /**
-     * Specific instructions.
-     */
-    private String specificInstructions;
     /**
      * Care type.
      */
@@ -77,7 +72,7 @@ public class AnnouncementResponseDto {
      */
     private LocalDateTime creationDate;
     /**
-     * Public images.
+     * Images base64 encoded.
      */
-    private List<ImageDto> publicImages;
+    private String[] images;
 }

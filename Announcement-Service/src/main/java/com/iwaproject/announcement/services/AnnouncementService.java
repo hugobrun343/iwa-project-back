@@ -2,13 +2,17 @@ package com.iwaproject.announcement.services;
 
 import com.iwaproject.announcement.dto.AnnouncementRequestDto;
 import com.iwaproject.announcement.dto.AnnouncementMapper;
+import com.iwaproject.announcement.dto.AnnouncementResponseDto;
 import com.iwaproject.announcement.entities.Announcement;
 import com.iwaproject.announcement.entities.Announcement.AnnouncementStatus;
 import com.iwaproject.announcement.entities.CareType;
+import com.iwaproject.announcement.entities.Image;
 import com.iwaproject.announcement.repositories.AnnouncementRepository;
 import com.iwaproject.announcement.repositories.CareTypeRepository;
 import java.util.List;
 import java.util.Optional;
+
+import com.iwaproject.announcement.repositories.ImageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +34,11 @@ public class AnnouncementService {
      * The care type repository.
      */
     private final CareTypeRepository careTypeRepository;
+
+    /**
+     * The image repository.
+     */
+    private final ImageRepository imageRepository;
 
     /**
      * The announcement mapper.
@@ -223,6 +232,23 @@ public class AnnouncementService {
     }
 
     /**
+     * Get all announcements with public images.
+     * @return list of all announcements with their public images
+     */
+    @Transactional(readOnly = true)
+    public List<AnnouncementResponseDto> getAllAnnouncementsWithPublicImages() {
+        List<Announcement> announcements = announcementRepository.findAll();
+        return announcements.stream()
+                .map(announcement -> {
+                    List<Image> publicImages =
+                            imageRepository.findByAnnouncementIdAndIsPrivateFalse(
+                                    announcement.getId());
+                    return announcementMapper.toResponseDto(announcement, publicImages);
+                })
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
      * Get announcements by owner id.
      * @param ownerId the owner id
      * @return list of announcements for the owner
@@ -257,4 +283,15 @@ public class AnnouncementService {
         return announcementRepository.findByOwnerIdAndStatus(
                 ownerId, status);
     }
+
+    @Transactional(readOnly = true)
+    public List<Image> getPublicImagesByAnnouncement(final Long announcementId) {
+        return imageRepository.findByAnnouncementIdAndIsPrivateFalse(announcementId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Image> getPrivateImagesByAnnouncement(final Long announcementId) {
+        return imageRepository.findByAnnouncementId(announcementId);
+    }
 }
+

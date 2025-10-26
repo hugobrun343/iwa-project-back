@@ -157,6 +157,14 @@ public class AnnouncementController {
             @RequestParam(required = false)
             final AnnouncementStatus status) {
 
+        // If no filters, return all with public images
+        if (ownerId == null && status == null) {
+            List<AnnouncementResponseDto> responseDtos =
+                    announcementService.getAllAnnouncementsWithPublicImages();
+            return ResponseEntity.ok(responseDtos);
+        }
+
+        // Otherwise use the filtered approach
         List<Announcement> announcements;
 
         if (ownerId != null && status != null) {
@@ -168,12 +176,10 @@ public class AnnouncementController {
             announcements =
                     announcementService
                             .getAnnouncementsByOwnerId(ownerId);
-        } else if (status != null) {
+        } else {
             announcements =
                     announcementService
                             .getAnnouncementsByStatus(status);
-        } else {
-            announcements = announcementService.getAllAnnouncements();
         }
 
         List<AnnouncementResponseDto> responseDtos =
