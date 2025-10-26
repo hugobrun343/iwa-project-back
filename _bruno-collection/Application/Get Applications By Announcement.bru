@@ -1,0 +1,27 @@
+meta {
+  name: Get Applications By Announcement
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/applications?announcementId=1
+  body: none
+  auth: bearer
+}
+
+params:query {
+  announcementId: 1
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log(`✅ Retrieved ${Array.isArray(res.body) ? res.body.length : 0} applications for announcement`);
+  } else {
+    console.error('❌ Failed to get applications:', res.status);
+  }
+}
