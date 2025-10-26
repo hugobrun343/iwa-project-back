@@ -1,23 +1,13 @@
 package com.iwaproject.announcement.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Announcement entity.
@@ -36,10 +26,10 @@ public class    Announcement {
     private Long id;
 
     /**
-     * Owner id.
+     * Owner username.
      */
-    @Column(name = "owner_id", nullable = false)
-    private Long ownerId;
+    @Column(name = "owner_username", nullable = false)
+    private String ownerUsername;
 
     /**
      * Title.
@@ -122,6 +112,12 @@ public class    Announcement {
     private LocalDateTime creationDate;
 
     /**
+     * Images.
+     */
+    @OneToMany(mappedBy = "announcement", fetch = FetchType.LAZY)
+    private List<Image> images;
+
+    /**
      * Set creation date before persist.
      */
     @PrePersist
@@ -145,5 +141,10 @@ public class    Announcement {
          * Completed status.
          */
         COMPLETED
+    }
+
+    public Announcement removeSpecificInstructions() {
+        this.specificInstructions = null;
+        return this;
     }
 }

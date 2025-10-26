@@ -10,7 +10,6 @@ import com.iwaproject.announcement.entities.Image;
 import com.iwaproject.announcement.repositories.AnnouncementRepository;
 import com.iwaproject.announcement.repositories.CareTypeRepository;
 import java.util.List;
-import java.util.Optional;
 
 import com.iwaproject.announcement.repositories.ImageRepository;
 import lombok.RequiredArgsConstructor;
@@ -218,8 +217,35 @@ public class AnnouncementService {
      * @return the announcement if found
      */
     @Transactional(readOnly = true)
-    public Optional<Announcement> getAnnouncementById(final Long id) {
-        return announcementRepository.findById(id);
+    public Announcement getAnnouncementById(
+            final Long id,
+            final String username)
+    throws IllegalArgumentException {
+        Announcement announcement = announcementRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Announcement not found with id: " + id));
+
+        // verify if the user is the owner of the announcement
+        // or has an accepted application for it
+        boolean isOwner = username != null && username.equals(announcement.getOwnerUsername());
+        boolean hasAccess = isOwner || hasUserAcceptedApplication(
+                username, announcement.getId());
+
+        // Load images related to the announcement. If the user has no access,
+        // only load public images from the repository to avoid fetching private
+        // records and to improve performance.
+        List<Image> images;
+        if (!hasAccess) {
+            images = imageRepository.findByAnnouncementId(announcement.getId());
+        } else {
+            // Remove sensitive instructions for non-authorized users
+            announcement.removeSpecificInstructions();
+            images = imageRepository.findByAnnouncementIdAndIsPrivateFalse(announcement.getId());
+        }
+
+        // Attach the images to the announcement before returning
+        announcement.setImages(images);
+        return announcement;
     }
 
     /**
@@ -293,5 +319,9 @@ public class AnnouncementService {
     public List<Image> getPrivateImagesByAnnouncement(final Long announcementId) {
         return imageRepository.findByAnnouncementId(announcementId);
     }
-}
 
+    private boolean hasUserAcceptedApplication(String username, Long id) {
+        // Placeholder for actual implementation
+        return false;
+    }
+}

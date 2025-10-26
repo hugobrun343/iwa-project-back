@@ -29,7 +29,7 @@ public class AnnouncementMapper {
         }
 
         Announcement announcement = new Announcement();
-        announcement.setOwnerId(dto.getOwnerId());
+        announcement.setOwnerUsername(dto.getOwnerUsername());
         announcement.setTitle(dto.getTitle());
         announcement.setLocation(dto.getLocation());
         announcement.setDescription(dto.getDescription());
@@ -76,7 +76,7 @@ public class AnnouncementMapper {
 
         AnnouncementResponseDto dto = new AnnouncementResponseDto();
         dto.setId(announcement.getId());
-        dto.setOwnerId(announcement.getOwnerId());
+        dto.setOwnerUsername(announcement.getOwnerUsername());
         dto.setTitle(announcement.getTitle());
         dto.setLocation(announcement.getLocation());
         dto.setDescription(announcement.getDescription());

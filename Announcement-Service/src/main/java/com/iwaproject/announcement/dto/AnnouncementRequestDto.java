@@ -16,9 +16,9 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class AnnouncementRequestDto {
     /**
-     * Owner id.
+     * Owner username.
      */
-    private Long ownerId;
+    private String ownerUsername;
     /**
      * Title.
      */
