@@ -5,6 +5,7 @@ import com.iwaproject.announcement.entities.Announcement.AnnouncementStatus;
 import com.iwaproject.announcement.entities.CareType;
 import com.iwaproject.announcement.repositories.AnnouncementRepository;
 import com.iwaproject.announcement.repositories.CareTypeRepository;
+import com.iwaproject.announcement.repositories.ImageRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ class AnnouncementServiceTest {
     @Mock
     private CareTypeRepository careTypeRepository;
 
+    @Mock
+    private ImageRepository imageRepository;
+
     @InjectMocks
     private AnnouncementService announcementService;
 
@@ -50,7 +54,7 @@ class AnnouncementServiceTest {
 
         announcement = new Announcement();
         announcement.setId(1L);
-        announcement.setOwnerId(100L);
+        announcement.setOwnerUsername("test");
         announcement.setTitle("Recherche infirmier");
         announcement.setLocation("Paris");
         announcement.setDescription("Besoin d'un infirmier");
@@ -73,7 +77,7 @@ class AnnouncementServiceTest {
         Announcement newAnnouncement = new Announcement();
         newAnnouncement.setCareType(careType);
         newAnnouncement.setTitle("Test");
-        newAnnouncement.setOwnerId(100L);
+        newAnnouncement.setOwnerUsername("test");
 
         when(careTypeRepository.findById(1L)).thenReturn(Optional.of(careType));
         when(announcementRepository.save(any(Announcement.class))).thenReturn(announcement);
@@ -234,11 +238,11 @@ class AnnouncementServiceTest {
         when(announcementRepository.findById(1L)).thenReturn(Optional.of(announcement));
 
         // When
-        Optional<Announcement> result = announcementService.getAnnouncementById(1L);
+        Announcement result = announcementService.getAnnouncementById(1L, "test");
 
         // Then
-        assertThat(result).isPresent();
-        assertThat(result.get().getId()).isEqualTo(1L);
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(1L);
         verify(announcementRepository).findById(1L);
     }
 
@@ -249,11 +253,9 @@ class AnnouncementServiceTest {
         when(announcementRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When
-        Optional<Announcement> result = announcementService.getAnnouncementById(999L);
-
-        // Then
-        assertThat(result).isEmpty();
-        verify(announcementRepository).findById(999L);
+        assertThatThrownBy(() -> announcementService.getAnnouncementById(999L, "test"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Announcement not found with id: 999");
     }
 
     @Test
@@ -276,15 +278,15 @@ class AnnouncementServiceTest {
     void testGetAnnouncementsByOwnerId() {
         // Given
         List<Announcement> announcements = List.of(announcement);
-        when(announcementRepository.findByOwnerId(100L)).thenReturn(announcements);
+        when(announcementRepository.findByOwnerUsername("test")).thenReturn(announcements);
 
         // When
-        List<Announcement> result = announcementService.getAnnouncementsByOwnerId(100L);
+        List<Announcement> result = announcementService.getAnnouncementsByOwnerUsername("test");
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getOwnerId()).isEqualTo(100L);
-        verify(announcementRepository).findByOwnerId(100L);
+        assertThat(result.getFirst().getOwnerUsername()).isEqualTo("test");
+        verify(announcementRepository).findByOwnerUsername("test");
     }
 
     @Test
@@ -299,7 +301,7 @@ class AnnouncementServiceTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getStatus()).isEqualTo(AnnouncementStatus.PUBLISHED);
+        assertThat(result.getFirst().getStatus()).isEqualTo(AnnouncementStatus.PUBLISHED);
         verify(announcementRepository).findByStatus(AnnouncementStatus.PUBLISHED);
     }
 
@@ -308,16 +310,16 @@ class AnnouncementServiceTest {
     void testGetAnnouncementsByOwnerIdAndStatus() {
         // Given
         List<Announcement> announcements = List.of(announcement);
-        when(announcementRepository.findByOwnerIdAndStatus(100L, AnnouncementStatus.PUBLISHED))
+        when(announcementRepository.findByOwnerUsernameAndStatus("test", AnnouncementStatus.PUBLISHED))
                 .thenReturn(announcements);
 
         // When
-        List<Announcement> result = announcementService.getAnnouncementsByOwnerIdAndStatus(100L, AnnouncementStatus.PUBLISHED);
+        List<Announcement> result = announcementService.getAnnouncementsByOwnerUsernameAndStatus("test", AnnouncementStatus.PUBLISHED);
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getOwnerId()).isEqualTo(100L);
-        assertThat(result.get(0).getStatus()).isEqualTo(AnnouncementStatus.PUBLISHED);
-        verify(announcementRepository).findByOwnerIdAndStatus(100L, AnnouncementStatus.PUBLISHED);
+        assertThat(result.getFirst().getOwnerUsername()).isEqualTo("test");
+        assertThat(result.getFirst().getStatus()).isEqualTo(AnnouncementStatus.PUBLISHED);
+        verify(announcementRepository).findByOwnerUsernameAndStatus("test", AnnouncementStatus.PUBLISHED);
     }
 }

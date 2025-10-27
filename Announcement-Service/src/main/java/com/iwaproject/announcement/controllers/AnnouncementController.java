@@ -144,18 +144,18 @@ public class AnnouncementController {
      * Get all announcements.
      * GET /api/announcements
      *
-     * @param ownerId the owner id
+     * @param ownerUsername the owner username
      * @param status the announcement status
      * @return list of all announcements
      */
     @GetMapping
     public ResponseEntity<List<AnnouncementResponseDto>> getAll(
-            @RequestParam(required = false) final Long ownerId,
+            @RequestParam(required = false) final String ownerUsername,
             @RequestParam(required = false)
             final AnnouncementStatus status) {
 
         // If no filters, return all with public images
-        if (ownerId == null && status == null) {
+        if (ownerUsername == null && status == null) {
             List<AnnouncementResponseDto> responseDtos =
                     announcementService.getAllAnnouncementsWithPublicImages();
             return ResponseEntity.ok(responseDtos);
@@ -164,15 +164,15 @@ public class AnnouncementController {
         // Otherwise use the filtered approach
         List<Announcement> announcements;
 
-        if (ownerId != null && status != null) {
+        if (ownerUsername != null && status != null) {
             announcements =
                     announcementService
-                            .getAnnouncementsByOwnerIdAndStatus(
-                                    ownerId, status);
-        } else if (ownerId != null) {
+                            .getAnnouncementsByOwnerUsernameAndStatus(
+                                    ownerUsername, status);
+        } else if (ownerUsername != null) {
             announcements =
                     announcementService
-                            .getAnnouncementsByOwnerId(ownerId);
+                            .getAnnouncementsByOwnerUsername(ownerUsername);
         } else {
             announcements =
                     announcementService
@@ -188,14 +188,14 @@ public class AnnouncementController {
      * Get announcements by owner id.
      * GET /api/announcements/owner/{ownerId}
      *
-     * @param ownerId the owner id
+     * @param ownerUsername the owner username
      * @return list of announcements for the owner
      */
-    @GetMapping("/owner/{ownerId}")
+    @GetMapping("/owner/{ownerUsername}")
     public ResponseEntity<List<AnnouncementResponseDto>> getByOwnerId(
-            @PathVariable final Long ownerId) {
+            @PathVariable final String ownerUsername) {
         List<Announcement> announcements =
-                announcementService.getAnnouncementsByOwnerId(ownerId);
+                announcementService.getAnnouncementsByOwnerUsername(ownerUsername);
         List<AnnouncementResponseDto> responseDtos =
                 announcementMapper.toResponseDtoList(announcements);
         return ResponseEntity.ok(responseDtos);

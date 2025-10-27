@@ -276,13 +276,13 @@ public class AnnouncementService {
 
     /**
      * Get announcements by owner id.
-     * @param ownerId the owner id
+     * @param ownerUsername the owner username
      * @return list of announcements for the owner
      */
     @Transactional(readOnly = true)
-    public List<Announcement> getAnnouncementsByOwnerId(
-            final Long ownerId) {
-        return announcementRepository.findByOwnerId(ownerId);
+    public List<Announcement> getAnnouncementsByOwnerUsername(
+            final String ownerUsername) {
+        return announcementRepository.findByOwnerUsername(ownerUsername);
     }
 
     /**
@@ -298,16 +298,16 @@ public class AnnouncementService {
 
     /**
      * Get announcements by owner id and status.
-     * @param ownerId the owner id
+     * @param ownerUsername the owner username
      * @param status the announcement status
      * @return list of announcements for the owner with the specified
      * status
      */
     @Transactional(readOnly = true)
-    public List<Announcement> getAnnouncementsByOwnerIdAndStatus(
-            final Long ownerId, final AnnouncementStatus status) {
-        return announcementRepository.findByOwnerIdAndStatus(
-                ownerId, status);
+    public List<Announcement> getAnnouncementsByOwnerUsernameAndStatus(
+            final String ownerUsername, final AnnouncementStatus status) {
+        return announcementRepository.findByOwnerUsernameAndStatus(
+                ownerUsername, status);
     }
 
     @Transactional(readOnly = true)
