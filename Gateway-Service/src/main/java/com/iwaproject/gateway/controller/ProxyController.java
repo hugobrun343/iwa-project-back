@@ -50,6 +50,12 @@ public class ProxyController {
     private String announcementServiceUrl;
 
     /**
+     * Application service URL.
+     */
+    @Value("${APPLICATION_SERVICE_URL}")
+    private String applicationServiceUrl;
+
+    /**
      * Proxy all /api/users/** requests to User-Service.
      *
      * @param request the HTTP servlet request
@@ -290,5 +296,86 @@ public class ProxyController {
                     bodyBytes, outHeaders, ex.getStatusCode());
         }
     }
-}
 
+    /**
+     * Proxy all /api/applications/** requests to Application-Service.
+     *
+     * @param request the HTTP servlet request
+     * @param body the request body (if any)
+     * @param response the HTTP servlet response
+     * @return response from Application-Service
+     */
+    @RequestMapping("/api/applications/**")
+    public ResponseEntity<byte[]> proxyToApplicationService(
+        final HttpServletRequest request,
+        @RequestBody(required = false) final byte[] body,
+        final HttpServletResponse response) throws IOException {
+
+        String path = request.getRequestURI();
+        String targetUrl = applicationServiceUrl + path;
+        String queryString = request.getQueryString();
+        if (queryString != null && !queryString.isEmpty()) {
+            targetUrl = targetUrl + "?" + queryString;
+        }
+
+        LOGGER.debug("Proxying {} {} to Application-Service",
+                request.getMethod(), path);
+
+        // Copy headers (except Host)
+        HttpHeaders headers = new HttpHeaders();
+        Enumeration<String> headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            if (!headerName.equalsIgnoreCase("host")
+                    && !headerName.equalsIgnoreCase("content-length")) {
+                headers.add(headerName,
+                        request.getHeader(headerName));
+            }
+        }
+
+        HttpEntity<byte[]> entity = new HttpEntity<>(body, headers);
+
+        HttpMethod method = HttpMethod.valueOf(request.getMethod());
+
+        try {
+            ResponseEntity<byte[]> serviceResponse = restTemplate.exchange(
+                    targetUrl,
+                    method,
+                    entity,
+                    byte[].class
+            );
+
+            // Build sanitized response entity:
+            // don't forward transfer-encoding or content-length
+            HttpHeaders outHeaders = new HttpHeaders();
+            serviceResponse.getHeaders().forEach((name, values) -> {
+                if (!name.equalsIgnoreCase("transfer-encoding")
+                        && !name.equalsIgnoreCase("content-length")) {
+                    for (String v : values) {
+                        outHeaders.add(name, v);
+                    }
+                }
+            });
+
+            return new ResponseEntity<>(serviceResponse.getBody(), outHeaders,
+                    serviceResponse.getStatusCode());
+        } catch (org.springframework.web.client.HttpStatusCodeException ex) {
+            // Forward non-2xx status from service instead of converting to 500
+            HttpHeaders outHeaders = new HttpHeaders();
+            HttpHeaders exHeaders = ex.getResponseHeaders();
+            HttpHeaders safeHeaders = (exHeaders != null)
+                    ? exHeaders : new HttpHeaders();
+            safeHeaders.forEach((name, values) -> {
+                if (!name.equalsIgnoreCase("transfer-encoding")
+                        && !name.equalsIgnoreCase("content-length")) {
+                    for (String v : values) {
+                        outHeaders.add(name, v);
+                    }
+                }
+            });
+            byte[] bodyBytes = ex.getResponseBodyAsByteArray();
+            return new ResponseEntity<>(
+                    bodyBytes, outHeaders, ex.getStatusCode());
+        }
+    }
+}

@@ -1,7 +1,7 @@
 package com.iwaproject.gateway.config;
 
+import org.mockito.InjectMocks;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Profile;
 
 /**
@@ -14,6 +14,6 @@ public class TestConfig {
     /**
      * Mock RestTemplate for tests.
      */
-    @MockBean
+    @InjectMocks
     private org.springframework.web.client.RestTemplate restTemplate;
 }
