@@ -39,26 +39,26 @@ public class ApplicationService {
     public ApplicationResponseDto createApplication(
             final ApplicationRequestDto requestDto) {
         log.info("Creating application for announcement {} by guardian {}",
-                requestDto.getAnnouncementId(), requestDto.getGuardianId());
+                requestDto.getAnnouncementId(), requestDto.getGuardianUsername());
 
         // Check if application already exists
-        if (applicationRepository.existsByAnnouncementIdAndGuardianId(
-                requestDto.getAnnouncementId(), requestDto.getGuardianId())) {
+        if (applicationRepository.existsByAnnouncementIdAndGuardianUsername(
+                requestDto.getAnnouncementId(), requestDto.getGuardianUsername())) {
             log.warn("Application already exists for announcement {} "
                     + "and guardian {}", requestDto.getAnnouncementId(),
-                    requestDto.getGuardianId());
+                    requestDto.getGuardianUsername());
             throw new IllegalStateException(
                     "Application already exists for this announcement "
                     + "and guardian");
         }
 
-        Application Application = new Application();
-        Application.setAnnouncementId(requestDto.getAnnouncementId());
-        Application.setGuardianId(requestDto.getGuardianId());
-        Application.setStatus(ApplicationStatus.SENT);
-        Application.setApplicationDate(LocalDateTime.now());
+        Application application = new Application();
+        application.setAnnouncementId(requestDto.getAnnouncementId());
+        application.setGuardianUsername(requestDto.getGuardianUsername());
+        application.setStatus(ApplicationStatus.SENT);
+        application.setApplicationDate(LocalDateTime.now());
 
-        Application savedApplication = applicationRepository.save(Application);
+        Application savedApplication = applicationRepository.save(application);
         log.info("Application created with id {}", savedApplication.getId());
 
         return mapToResponseDto(savedApplication);
@@ -74,10 +74,10 @@ public class ApplicationService {
     @Transactional(readOnly = true)
     public ApplicationResponseDto getApplicationById(final Integer id) {
         log.info("Fetching application with id {}", id);
-        Application Application = applicationRepository.findById(id)
+        Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Application not found with id: " + id));
-        return mapToResponseDto(Application);
+        return mapToResponseDto(application);
     }
 
     /**
@@ -113,14 +113,14 @@ public class ApplicationService {
     /**
      * Gets applications by guardian ID.
      *
-     * @param guardianId the guardian ID
+     * @param guardianUsername the guardian username
      * @return list of applications
      */
     @Transactional(readOnly = true)
-    public List<ApplicationResponseDto> getApplicationsByGuardianId(
-            final Integer guardianId) {
-        log.info("Fetching applications for guardian {}", guardianId);
-        return applicationRepository.findByGuardianId(guardianId).stream()
+    public List<ApplicationResponseDto> getApplicationsByGuardianUsername(
+            final String guardianUsername) {
+        log.info("Fetching applications for guardian {}", guardianUsername);
+        return applicationRepository.findByGuardianUsername(guardianUsername).stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }
@@ -164,17 +164,17 @@ public class ApplicationService {
     /**
      * Gets applications by guardian ID and status.
      *
-     * @param guardianId the guardian ID
+     * @param guardianUsername the guardian username
      * @param status the application status
      * @return list of applications
      */
     @Transactional(readOnly = true)
-    public List<ApplicationResponseDto> getApplicationsByGuardianIdAndStatus(
-            final Integer guardianId, final ApplicationStatus status) {
+    public List<ApplicationResponseDto> getApplicationsByGuardianUsernameAndStatus(
+            final String guardianUsername, final ApplicationStatus status) {
         log.info("Fetching applications for guardian {} with status {}",
-                guardianId, status);
+                guardianUsername, status);
         return applicationRepository
-                .findByGuardianIdAndStatus(guardianId, status)
+                .findByGuardianUsernameAndStatus(guardianUsername, status)
                 .stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
@@ -193,13 +193,13 @@ public class ApplicationService {
         log.info("Updating status of application {} to {}", id,
                 updateDto.getStatus());
 
-        Application Application = applicationRepository.findById(id)
+        Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Application not found with id: " + id));
 
-        Application.setStatus(updateDto.getStatus());
+        application.setStatus(updateDto.getStatus());
         Application updatedApplication =
-                applicationRepository.save(Application);
+                applicationRepository.save(application);
 
         log.info("Application {} status updated successfully", id);
         return mapToResponseDto(updatedApplication);
@@ -228,7 +228,7 @@ public class ApplicationService {
         return new ApplicationResponseDto(
                 application.getId(),
                 application.getAnnouncementId(),
-                application.getGuardianId(),
+                application.getGuardianUsername(),
                 application.getStatus(),
                 application.getApplicationDate()
         );

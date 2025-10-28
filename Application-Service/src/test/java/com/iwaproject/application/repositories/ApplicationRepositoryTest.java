@@ -29,13 +29,13 @@ class ApplicationRepositoryTest {
 
         testCandidature1 = new Application();
         testCandidature1.setAnnouncementId(100);
-        testCandidature1.setGuardianId(200);
+        testCandidature1.setGuardianUsername("guardianUsername");
         testCandidature1.setStatus(ApplicationStatus.SENT);
         testCandidature1.setApplicationDate(LocalDateTime.now());
 
         testCandidature2 = new Application();
         testCandidature2.setAnnouncementId(101);
-        testCandidature2.setGuardianId(200);
+        testCandidature2.setGuardianUsername("guardianUsername");
         testCandidature2.setStatus(ApplicationStatus.ACCEPTED);
         testCandidature2.setApplicationDate(LocalDateTime.now());
 
@@ -54,7 +54,7 @@ class ApplicationRepositoryTest {
 
     @Test
     void findByGuardianId_Success() {
-        List<Application> candidatures = applicationRepository.findByGuardianId(200);
+        List<Application> candidatures = applicationRepository.findByGuardianUsername("guardianUsername");
 
         assertNotNull(candidatures);
         assertEquals(2, candidatures.size());
@@ -76,31 +76,31 @@ class ApplicationRepositoryTest {
 
         assertNotNull(candidatures);
         assertEquals(1, candidatures.size());
-        assertEquals(100, candidatures.get(0).getAnnouncementId());
-        assertEquals(ApplicationStatus.SENT, candidatures.get(0).getStatus());
+        assertEquals(100, candidatures.getFirst().getAnnouncementId());
+        assertEquals(ApplicationStatus.SENT, candidatures.getFirst().getStatus());
     }
 
     @Test
     void findByGuardianIdAndStatus_Success() {
         List<Application> candidatures = applicationRepository
-                .findByGuardianIdAndStatus(200, ApplicationStatus.ACCEPTED);
+                .findByGuardianUsernameAndStatus("guardianUsername", ApplicationStatus.ACCEPTED);
 
         assertNotNull(candidatures);
         assertEquals(1, candidatures.size());
-        assertEquals(200, candidatures.get(0).getGuardianId());
-        assertEquals(ApplicationStatus.ACCEPTED, candidatures.get(0).getStatus());
+        assertEquals("guardianUsername", candidatures.getFirst().getGuardianUsername());
+        assertEquals(ApplicationStatus.ACCEPTED, candidatures.getFirst().getStatus());
     }
 
     @Test
     void existsByAnnouncementIdAndGuardianId_True() {
-        boolean exists = applicationRepository.existsByAnnouncementIdAndGuardianId(100, 200);
+        boolean exists = applicationRepository.existsByAnnouncementIdAndGuardianUsername(100, "guardianUsername");
 
         assertTrue(exists);
     }
 
     @Test
     void existsByAnnouncementIdAndGuardianId_False() {
-        boolean exists = applicationRepository.existsByAnnouncementIdAndGuardianId(999, 999);
+        boolean exists = applicationRepository.existsByAnnouncementIdAndGuardianUsername(999, "nonExistentUser");
 
         assertFalse(exists);
     }

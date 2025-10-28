@@ -51,13 +51,13 @@ class ApplicationControllerTest {
         responseDto = new ApplicationResponseDto();
         responseDto.setId(1);
         responseDto.setAnnouncementId(100);
-        responseDto.setGuardianId(200);
+        responseDto.setGuardianUsername("guardianUsername");
         responseDto.setStatus(ApplicationStatus.SENT);
         responseDto.setApplicationDate(LocalDateTime.now());
 
         requestDto = new ApplicationRequestDto();
         requestDto.setAnnouncementId(100);
-        requestDto.setGuardianId(200);
+        requestDto.setGuardianUsername("guardianUsername");
     }
 
     @Test
@@ -70,7 +70,7 @@ class ApplicationControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.announcementId").value(100))
-                .andExpect(jsonPath("$.guardianId").value(200))
+                .andExpect(jsonPath("$.guardianUsername").value("guardianUsername"))
                 .andExpect(jsonPath("$.status").value("SENT"));
 
         verify(applicationService, times(1)).createApplication(any(ApplicationRequestDto.class));
@@ -139,16 +139,16 @@ class ApplicationControllerTest {
     }
 
     @Test
-    void getApplicationsByGuardianId_Success() throws Exception {
+    void getApplicationsByGuardianUsername_Success() throws Exception {
         List<ApplicationResponseDto> applications = Arrays.asList(responseDto);
-        when(applicationService.getApplicationsByGuardianId(200)).thenReturn(applications);
+        when(applicationService.getApplicationsByGuardianUsername("guardianUsername")).thenReturn(applications);
 
         mockMvc.perform(get("/api/applications")
-                        .param("guardianId", "200"))
+                        .param("guardianUsername", "guardianUsername"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].guardianId").value(200));
+                .andExpect(jsonPath("$[0].guardianUsername").value("guardianUsername"));
 
-        verify(applicationService, times(1)).getApplicationsByGuardianId(200);
+        verify(applicationService, times(1)).getApplicationsByGuardianUsername("guardianUsername");
     }
 
     @Test

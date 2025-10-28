@@ -46,8 +46,8 @@ public final class Application {
     /**
      * Guardian ID reference.
      */
-    @Column(name = "gardien_id", nullable = false)
-    private Integer guardianId;
+    @Column(name = "gardien_username", nullable = false)
+    private String guardianUsername;
 
     /**
      * Application status.

@@ -39,18 +39,18 @@ class ApplicationServiceTest {
         testCandidature = new Application();
         testCandidature.setId(1);
         testCandidature.setAnnouncementId(100);
-        testCandidature.setGuardianId(200);
+        testCandidature.setGuardianUsername("guardianUsername");
         testCandidature.setStatus(ApplicationStatus.SENT);
         testCandidature.setApplicationDate(LocalDateTime.now());
 
         requestDto = new ApplicationRequestDto();
         requestDto.setAnnouncementId(100);
-        requestDto.setGuardianId(200);
+        requestDto.setGuardianUsername("guardianUsername");
     }
 
     @Test
     void createApplication_Success() {
-        when(applicationRepository.existsByAnnouncementIdAndGuardianId(100, 200)).thenReturn(false);
+        when(applicationRepository.existsByAnnouncementIdAndGuardianUsername(100, "guardianUsername")).thenReturn(false);
         when(applicationRepository.save(any(Application.class))).thenReturn(testCandidature);
 
         ApplicationResponseDto result = applicationService.createApplication(requestDto);
@@ -58,14 +58,14 @@ class ApplicationServiceTest {
         assertNotNull(result);
         assertEquals(1, result.getId());
         assertEquals(100, result.getAnnouncementId());
-        assertEquals(200, result.getGuardianId());
+        assertEquals("guardianUsername", result.getGuardianUsername());
         assertEquals(ApplicationStatus.SENT, result.getStatus());
         verify(applicationRepository, times(1)).save(any(Application.class));
     }
 
     @Test
     void createApplication_AlreadyExists_ThrowsException() {
-        when(applicationRepository.existsByAnnouncementIdAndGuardianId(100, 200)).thenReturn(true);
+        when(applicationRepository.existsByAnnouncementIdAndGuardianUsername(100, "guardianUsername")).thenReturn(true);
 
         assertThrows(IllegalStateException.class, () -> {
             applicationService.createApplication(requestDto);
@@ -117,21 +117,21 @@ class ApplicationServiceTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(100, result.get(0).getAnnouncementId());
+        assertEquals(100, result.getFirst().getAnnouncementId());
         verify(applicationRepository, times(1)).findByAnnouncementId(100);
     }
 
     @Test
     void getApplicationsByGuardianId_Success() {
         List<Application> candidatures = Arrays.asList(testCandidature);
-        when(applicationRepository.findByGuardianId(200)).thenReturn(candidatures);
+        when(applicationRepository.findByGuardianUsername("guardianUsername")).thenReturn(candidatures);
 
-        List<ApplicationResponseDto> result = applicationService.getApplicationsByGuardianId(200);
+        List<ApplicationResponseDto> result = applicationService.getApplicationsByGuardianUsername("guardianUsername");
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(200, result.get(0).getGuardianId());
-        verify(applicationRepository, times(1)).findByGuardianId(200);
+        assertEquals("guardianUsername", result.getFirst().getGuardianUsername());
+        verify(applicationRepository, times(1)).findByGuardianUsername("guardianUsername");
     }
 
     @Test
@@ -143,7 +143,7 @@ class ApplicationServiceTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(ApplicationStatus.SENT, result.get(0).getStatus());
+        assertEquals(ApplicationStatus.SENT, result.getFirst().getStatus());
         verify(applicationRepository, times(1)).findByStatus(ApplicationStatus.SENT);
     }
 

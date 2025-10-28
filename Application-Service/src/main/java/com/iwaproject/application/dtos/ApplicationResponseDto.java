@@ -26,9 +26,9 @@ public class ApplicationResponseDto {
     private Integer announcementId;
 
     /**
-     * Guardian ID.
+     * Guardian username.
      */
-    private Integer guardianId;
+    private String guardianUsername;
 
     /**
      * Application status.

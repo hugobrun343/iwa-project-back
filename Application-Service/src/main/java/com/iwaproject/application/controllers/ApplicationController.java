@@ -106,14 +106,14 @@ public final class ApplicationController {
      * Gets all applications with optional filters.
      *
      * @param announcementId optional announcement ID filter
-     * @param guardianId optional guardian ID filter
+     * @param guardianUsername optional guardian username filter
      * @param status optional status filter
      * @return list of applications
      */
     @GetMapping
     public ResponseEntity<List<ApplicationResponseDto>> getAllApplications(
             final @RequestParam(required = false) Integer announcementId,
-            final @RequestParam(required = false) Integer guardianId,
+            final @RequestParam(required = false) String guardianUsername,
             final @RequestParam(required = false) ApplicationStatus status) {
         kafkaLogService.info(LOGGER_NAME,
                 "GET /api/applications"
@@ -125,16 +125,16 @@ public final class ApplicationController {
                 responses = applicationService
                         .getApplicationsByAnnouncementIdAndStatus(
                                 announcementId, status);
-            } else if (guardianId != null && status != null) {
+            } else if (guardianUsername != null && status != null) {
                 responses = applicationService
-                        .getApplicationsByGuardianIdAndStatus(
-                                guardianId, status);
+                        .getApplicationsByGuardianUsernameAndStatus(
+                                guardianUsername, status);
             } else if (announcementId != null) {
                 responses = applicationService
                         .getApplicationsByAnnouncementId(announcementId);
-            } else if (guardianId != null) {
+            } else if (guardianUsername != null) {
                 responses = applicationService
-                        .getApplicationsByGuardianId(guardianId);
+                        .getApplicationsByGuardianUsername(guardianUsername);
             } else if (status != null) {
                 responses = applicationService.getApplicationsByStatus(status);
             } else {

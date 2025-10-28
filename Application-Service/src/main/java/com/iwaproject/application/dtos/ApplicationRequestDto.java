@@ -20,5 +20,5 @@ public class ApplicationRequestDto {
     /**
      * Guardian ID.
      */
-    private Integer guardianId;
+    private String guardianUsername;
 }

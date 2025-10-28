@@ -25,10 +25,10 @@ public interface ApplicationRepository
     /**
      * Finds all applications for a guardian.
      *
-     * @param guardianId the guardian ID
+     * @param guardianUsername the guardian's username
      * @return list of applications
      */
-    List<Application> findByGuardianId(Integer guardianId);
+    List<Application> findByGuardianUsername(String guardianUsername);
 
     /**
      * Finds all applications with a specific status.
@@ -51,20 +51,20 @@ public interface ApplicationRepository
     /**
      * Finds applications by guardian and status.
      *
-     * @param guardianId the guardian ID
+     * @param guardianUsername the guardian's username
      * @param status the application status
      * @return list of applications
      */
-    List<Application> findByGuardianIdAndStatus(
-            Integer guardianId, ApplicationStatus status);
+    List<Application> findByGuardianUsernameAndStatus(
+            String guardianUsername, ApplicationStatus status);
 
     /**
      * Checks if an application exists for announcement and guardian.
      *
      * @param announcementId the announcement ID
-     * @param guardianId the guardian ID
+     * @param guardianUsername the guardian's username
      * @return true if exists, false otherwise
      */
-    boolean existsByAnnouncementIdAndGuardianId(
-            Integer announcementId, Integer guardianId);
+    boolean existsByAnnouncementIdAndGuardianUsername(
+            Integer announcementId, String guardianUsername);
 }
