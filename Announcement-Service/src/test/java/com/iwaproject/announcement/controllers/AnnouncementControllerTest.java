@@ -118,6 +118,7 @@ class AnnouncementControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/announcements")
+                        .header("X-Username", "test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
@@ -140,6 +141,7 @@ class AnnouncementControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/announcements")
+                        .header("X-Username", "test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isBadRequest());

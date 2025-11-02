@@ -207,4 +207,174 @@ class ApplicationServiceTest {
 
         verify(applicationRepository, never()).deleteById(anyInt());
     }
+
+    @Test
+    void createApplication_OwnerApplyingToOwnAnnouncement_ThrowsException() {
+        requestDto.setGuardianUsername("ownerUsername");
+
+        when(announcementOwnerKafkaService.getAnnouncementOwner(100))
+                .thenReturn(CompletableFuture.completedFuture("ownerUsername"));
+
+        assertThrows(IllegalStateException.class, () -> {
+            applicationService.createApplicationDto(requestDto);
+        });
+
+        verify(applicationRepository, never()).save(any(Application.class));
+    }
+
+    @Test
+    void getApplicationsByAnnouncementIdAndStatus_Success() {
+        List<Application> candidatures = Arrays.asList(testCandidature);
+        when(applicationRepository.findByAnnouncementIdAndStatus(
+                100, ApplicationStatus.SENT)).thenReturn(candidatures);
+
+        List<ApplicationResponseDto> result =
+                applicationService.getApplicationsByAnnouncementIdAndStatus(
+                        100, ApplicationStatus.SENT);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(100, result.getFirst().getAnnouncementId());
+        assertEquals(ApplicationStatus.SENT, result.getFirst().getStatus());
+        verify(applicationRepository, times(1))
+                .findByAnnouncementIdAndStatus(100, ApplicationStatus.SENT);
+    }
+
+    @Test
+    void getApplicationsByGuardianUsernameAndStatus_Success() {
+        List<Application> candidatures = Arrays.asList(testCandidature);
+        when(applicationRepository.findByGuardianUsernameAndStatus(
+                "guardianUsername", ApplicationStatus.SENT))
+                .thenReturn(candidatures);
+
+        List<ApplicationResponseDto> result =
+                applicationService.getApplicationsByGuardianUsernameAndStatus(
+                        "guardianUsername", ApplicationStatus.SENT);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("guardianUsername", result.getFirst().getGuardianUsername());
+        assertEquals(ApplicationStatus.SENT, result.getFirst().getStatus());
+        verify(applicationRepository, times(1))
+                .findByGuardianUsernameAndStatus("guardianUsername",
+                        ApplicationStatus.SENT);
+    }
+
+    @Test
+    void createApplication_DirectCall_Success() {
+        when(announcementOwnerKafkaService.getAnnouncementOwner(100))
+                .thenReturn(CompletableFuture.completedFuture("ownerUsername"));
+        when(applicationRepository.existsByAnnouncementIdAndGuardianUsername(
+                100, "guardianUsername")).thenReturn(false);
+        when(applicationRepository.save(any(Application.class)))
+                .thenReturn(testCandidature);
+
+        Application result = applicationService.createApplication(requestDto);
+
+        assertNotNull(result);
+        assertEquals(1, result.getId());
+        assertEquals(100, result.getAnnouncementId());
+        assertEquals("guardianUsername", result.getGuardianUsername());
+        assertEquals(ApplicationStatus.SENT, result.getStatus());
+        verify(applicationRepository, times(1)).save(any(Application.class));
+    }
+
+    @Test
+    void getApplicationsByStatus_MultipleStatuses() {
+        Application acceptedApp = new Application();
+        acceptedApp.setId(2);
+        acceptedApp.setAnnouncementId(101);
+        acceptedApp.setGuardianUsername("guardian2");
+        acceptedApp.setStatus(ApplicationStatus.ACCEPTED);
+        acceptedApp.setApplicationDate(LocalDateTime.now());
+
+        List<Application> candidatures = Arrays.asList(acceptedApp);
+        when(applicationRepository.findByStatus(ApplicationStatus.ACCEPTED))
+                .thenReturn(candidatures);
+
+        List<ApplicationResponseDto> result =
+                applicationService.getApplicationsByStatus(
+                        ApplicationStatus.ACCEPTED);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(ApplicationStatus.ACCEPTED, result.getFirst().getStatus());
+        verify(applicationRepository, times(1))
+                .findByStatus(ApplicationStatus.ACCEPTED);
+    }
+
+    @Test
+    void getApplicationsByStatus_Refused() {
+        Application refusedApp = new Application();
+        refusedApp.setId(3);
+        refusedApp.setAnnouncementId(102);
+        refusedApp.setGuardianUsername("guardian3");
+        refusedApp.setStatus(ApplicationStatus.REFUSED);
+        refusedApp.setApplicationDate(LocalDateTime.now());
+
+        List<Application> candidatures = Arrays.asList(refusedApp);
+        when(applicationRepository.findByStatus(ApplicationStatus.REFUSED))
+                .thenReturn(candidatures);
+
+        List<ApplicationResponseDto> result =
+                applicationService.getApplicationsByStatus(
+                        ApplicationStatus.REFUSED);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(ApplicationStatus.REFUSED, result.getFirst().getStatus());
+        verify(applicationRepository, times(1))
+                .findByStatus(ApplicationStatus.REFUSED);
+    }
+
+    @Test
+    void updateApplicationStatus_ToRefused_Success() {
+        ApplicationUpdateStatusDto updateDto = new ApplicationUpdateStatusDto();
+        updateDto.setStatus(ApplicationStatus.REFUSED);
+
+        Application updatedApp = new Application();
+        updatedApp.setId(1);
+        updatedApp.setAnnouncementId(100);
+        updatedApp.setGuardianUsername("guardianUsername");
+        updatedApp.setStatus(ApplicationStatus.REFUSED);
+        updatedApp.setApplicationDate(LocalDateTime.now());
+
+        when(applicationRepository.findById(1))
+                .thenReturn(Optional.of(testCandidature));
+        when(applicationRepository.save(any(Application.class)))
+                .thenReturn(updatedApp);
+
+        ApplicationResponseDto result =
+                applicationService.updateApplicationStatus(1, updateDto);
+
+        assertNotNull(result);
+        assertEquals(ApplicationStatus.REFUSED, result.getStatus());
+        verify(applicationRepository, times(1)).findById(1);
+        verify(applicationRepository, times(1)).save(any(Application.class));
+    }
+
+    @Test
+    void getAllApplications_EmptyList() {
+        when(applicationRepository.findAll()).thenReturn(Arrays.asList());
+
+        List<ApplicationResponseDto> result =
+                applicationService.getAllApplications();
+
+        assertNotNull(result);
+        assertEquals(0, result.size());
+        verify(applicationRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getApplicationsByAnnouncementId_EmptyList() {
+        when(applicationRepository.findByAnnouncementId(999))
+                .thenReturn(Arrays.asList());
+
+        List<ApplicationResponseDto> result =
+                applicationService.getApplicationsByAnnouncementId(999);
+
+        assertNotNull(result);
+        assertEquals(0, result.size());
+        verify(applicationRepository, times(1)).findByAnnouncementId(999);
+    }
 }
