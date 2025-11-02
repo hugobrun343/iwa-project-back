@@ -120,27 +120,6 @@ class FavoriteControllerTest {
     }
 
     /**
-     * Test GET /api/favorites/announcement/{id} returns list.
-     */
-    @Test
-    @DisplayName("GET /api/favorites/announcement/{id} returns list")
-    void getFavoritesByAnnouncement_ok() throws Exception {
-        // Given
-        FavoriteDTO favoriteDTO = createTestFavoriteDTO();
-        when(favoriteService.getFavoritesByAnnouncement(TEST_ANNOUNCEMENT_ID))
-                .thenReturn(List.of(favoriteDTO));
-
-        // When & Then
-        mockMvc.perform(get("/api/favorites/announcement/{announcementId}", TEST_ANNOUNCEMENT_ID)
-                        .header(X_USERNAME_HEADER, TEST_USERNAME))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].announcementId", is(TEST_ANNOUNCEMENT_ID)));
-
-        verify(favoriteService).getFavoritesByAnnouncement(TEST_ANNOUNCEMENT_ID);
-    }
-
-    /**
      * Test GET /api/favorites/check returns true.
      */
     @Test
@@ -282,6 +261,44 @@ class FavoriteControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(favoriteService).removeFavorite(TEST_USERNAME, TEST_ANNOUNCEMENT_ID);
+    }
+
+    /**
+     * Test DELETE /api/favorites/{id} when service throws unexpected exception.
+     */
+    @Test
+    @DisplayName("DELETE /api/favorites/{id} returns internal server error on unexpected exception")
+    void removeFavorite_unexpectedException() throws Exception {
+        // Given
+        doThrow(new RuntimeException("Unexpected error"))
+                .when(favoriteService)
+                .removeFavorite(TEST_USERNAME, TEST_ANNOUNCEMENT_ID);
+
+        // When & Then
+        mockMvc.perform(delete("/api/favorites/{announcementId}", TEST_ANNOUNCEMENT_ID)
+                        .header(X_USERNAME_HEADER, TEST_USERNAME))
+                .andExpect(status().isInternalServerError());
+
+        verify(favoriteService).removeFavorite(TEST_USERNAME, TEST_ANNOUNCEMENT_ID);
+    }
+
+    /**
+     * Test GET /api/favorites/check when service throws exception.
+     */
+    @Test
+    @DisplayName("GET /api/favorites/check returns internal server error on exception")
+    void checkFavorite_exception() throws Exception {
+        // Given
+        when(favoriteService.isFavorite(TEST_USERNAME, TEST_ANNOUNCEMENT_ID))
+                .thenThrow(new RuntimeException("Database error"));
+
+        // When & Then
+        mockMvc.perform(get("/api/favorites/check")
+                        .header(X_USERNAME_HEADER, TEST_USERNAME)
+                        .param("announcementId", TEST_ANNOUNCEMENT_ID.toString()))
+                .andExpect(status().isInternalServerError());
+
+        verify(favoriteService).isFavorite(TEST_USERNAME, TEST_ANNOUNCEMENT_ID);
     }
 
     /**

@@ -221,14 +221,14 @@ public class ProxyController {
     }
 
     /**
-     * Proxy all /api/announcements requests to Announcement-Service.
+     * Proxy all /api/announcements/** requests to Announcement-Service.
      *
      * @param request the HTTP servlet request
      * @param body the request body (if any)
      * @param response the HTTP servlet response
      * @return response from Announcement-Service
      */
-    @RequestMapping("/api/announcements")
+    @RequestMapping("/api/announcements/**")
     public ResponseEntity<byte[]> proxyToAnnouncementService(
         final HttpServletRequest request,
         @RequestBody(required = false) final byte[] body,
@@ -303,14 +303,14 @@ public class ProxyController {
     }
 
     /**
-     * Proxy all /api/favorites requests to Favorite-Service.
+     * Proxy all /api/favorites/** requests to Favorite-Service.
      *
      * @param request the HTTP servlet request
      * @param body the request body (if any)
      * @param response the HTTP servlet response
      * @return response from Favorite-Service
      */
-    @RequestMapping("/api/favorites")
+    @RequestMapping("/api/favorites/**")
     public ResponseEntity<byte[]> proxyToFavoriteService(
         final HttpServletRequest request,
         @RequestBody(required = false) final byte[] body,

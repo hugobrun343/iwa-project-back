@@ -76,31 +76,6 @@ public class FavoriteController {
     }
 
     /**
-     * Get all favorites for a specific announcement.
-     *
-     * @param announcementId the announcement ID
-     * @return list of favorites
-     */
-    @GetMapping("/announcement/{announcementId}")
-    public ResponseEntity<List<FavoriteDTO>> getFavoritesByAnnouncement(
-            @PathVariable final Integer announcementId) {
-
-        kafkaLogService.info(LOGGER_NAME,
-                "GET /api/favorites/announcement/" + announcementId);
-
-        try {
-            List<FavoriteDTO> favorites =
-                    favoriteService.getFavoritesByAnnouncement(announcementId);
-            return ResponseEntity.ok(favorites);
-        } catch (Exception e) {
-            kafkaLogService.error(LOGGER_NAME,
-                    "Failed to get favorites for announcement: "
-                            + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
      * Check if an announcement is favorited by the current guardian.
      *
      * @param username the username from header
