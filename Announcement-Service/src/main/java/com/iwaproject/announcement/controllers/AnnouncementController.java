@@ -10,7 +10,17 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST controller for managing announcements.
@@ -33,13 +43,18 @@ public class AnnouncementController {
      * Create a new announcement.
      * POST /api/announcements
      *
+     * @param username the username from the authentication header
      * @param requestDto the announcement request DTO
      * @return the created announcement with HTTP 201 status
      */
     @PostMapping
     public ResponseEntity<AnnouncementResponseDto> createAnnouncement(
+            @RequestHeader("X-Username") final String username,
             @RequestBody final AnnouncementRequestDto requestDto) {
         try {
+            // Set the owner username from the authenticated user
+            requestDto.setOwnerUsername(username);
+            
             Announcement createdAnnouncement =
                     announcementService
                             .createAnnouncementFromDto(requestDto);
@@ -123,6 +138,7 @@ public class AnnouncementController {
      * GET /api/announcements/{id}
      *
      * @param id the announcement id
+     * @param username the username of the user requesting the announcement
      * @return the announcement if found
      */
     @GetMapping("/{id}")
@@ -185,17 +201,19 @@ public class AnnouncementController {
     }
 
     /**
-     * Get announcements by owner id.
-     * GET /api/announcements/owner/{ownerId}
+     * Get announcements by owner username.
+     * GET /api/announcements/owner/{ownerUsername}
      *
      * @param ownerUsername the owner username
      * @return list of announcements for the owner
      */
     @GetMapping("/owner/{ownerUsername}")
-    public ResponseEntity<List<AnnouncementResponseDto>> getByOwnerId(
-            @PathVariable final String ownerUsername) {
+    public ResponseEntity<List<AnnouncementResponseDto>>
+            getByOwner(
+                    @PathVariable final String ownerUsername) {
         List<Announcement> announcements =
-                announcementService.getAnnouncementsByOwnerUsername(ownerUsername);
+                announcementService.getAnnouncementsByOwnerUsername(
+                        ownerUsername);
         List<AnnouncementResponseDto> responseDtos =
                 announcementMapper.toResponseDtoList(announcements);
         return ResponseEntity.ok(responseDtos);

@@ -8,8 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 /**
  * Service to send structured log messages to Kafka.
  */
@@ -20,11 +18,6 @@ public class KafkaLogService {
      * Kafka template.
      */
     private final KafkaTemplate<String, Object> kafkaTemplate;
-
-    /**
-     * Object mapper.
-     */
-    private final ObjectMapper objectMapper;
 
     /**
      * Logs topic name.
@@ -40,19 +33,16 @@ public class KafkaLogService {
      * Constructor.
      *
      * @param template kafka template
-     * @param mapper object mapper
      * @param topic logs topic name
      * @param name service name
      */
     public KafkaLogService(
             final KafkaTemplate<String, Object> template,
-            final ObjectMapper mapper,
             @Value("${kafka.logs.topic:microservices-logs}")
             final String topic,
             @Value("${spring.application.name:User-Service}")
             final String name) {
         this.kafkaTemplate = template;
-        this.objectMapper = mapper;
         this.logsTopic = topic;
         this.serviceName = name;
     }
@@ -123,19 +113,18 @@ public class KafkaLogService {
                          final Throwable throwable) {
         try {
             Map<String, Object> logEntry = new HashMap<>();
-            logEntry.put("timestamp", Instant.now().toString());
             logEntry.put("level", level);
             logEntry.put("service", serviceName);
             logEntry.put("logger", logger);
             logEntry.put("message", message);
+            logEntry.put("timestamp", Instant.now().toString());
 
             if (throwable != null) {
-                logEntry.put("exception", throwable.getClass().getName());
-                logEntry.put("stackTrace", getStackTrace(throwable));
+                logEntry.put("exception", getStackTrace(throwable));
             }
 
-            String json = objectMapper.writeValueAsString(logEntry);
-            kafkaTemplate.send(logsTopic, json);
+            // Send the Map directly - let Kafka's JsonSerializer handle it
+            kafkaTemplate.send(logsTopic, logEntry);
         } catch (Exception e) {
             // Fallback to console if Kafka fails
             System.err.println("[KafkaLogService] "

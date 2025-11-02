@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +28,9 @@ class ApplicationServiceTest {
 
     @Mock
     private ApplicationRepository applicationRepository;
+
+    @Mock
+    private AnnouncementOwnerKafkaService announcementOwnerKafkaService;
 
     @InjectMocks
     private ApplicationService applicationService;
@@ -50,10 +54,15 @@ class ApplicationServiceTest {
 
     @Test
     void createApplication_Success() {
-        when(applicationRepository.existsByAnnouncementIdAndGuardianUsername(100, "guardianUsername")).thenReturn(false);
-        when(applicationRepository.save(any(Application.class))).thenReturn(testCandidature);
+        when(announcementOwnerKafkaService.getAnnouncementOwner(100))
+                .thenReturn(CompletableFuture.completedFuture("ownerUsername"));
+        when(applicationRepository.existsByAnnouncementIdAndGuardianUsername(
+                100, "guardianUsername")).thenReturn(false);
+        when(applicationRepository.save(any(Application.class)))
+                .thenReturn(testCandidature);
 
-        ApplicationResponseDto result = applicationService.createApplication(requestDto);
+        ApplicationResponseDto result =
+                applicationService.createApplicationDto(requestDto);
 
         assertNotNull(result);
         assertEquals(1, result.getId());
@@ -65,10 +74,13 @@ class ApplicationServiceTest {
 
     @Test
     void createApplication_AlreadyExists_ThrowsException() {
-        when(applicationRepository.existsByAnnouncementIdAndGuardianUsername(100, "guardianUsername")).thenReturn(true);
+        when(announcementOwnerKafkaService.getAnnouncementOwner(100))
+                .thenReturn(CompletableFuture.completedFuture("ownerUsername"));
+        when(applicationRepository.existsByAnnouncementIdAndGuardianUsername(
+                100, "guardianUsername")).thenReturn(true);
 
         assertThrows(IllegalStateException.class, () -> {
-            applicationService.createApplication(requestDto);
+            applicationService.createApplicationDto(requestDto);
         });
 
         verify(applicationRepository, never()).save(any(Application.class));

@@ -30,20 +30,40 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepository;
 
     /**
+     * Announcement owner Kafka service.
+     */
+    private final AnnouncementOwnerKafkaService announcementOwnerKafkaService;
+
+    /**
      * Creates a new application.
      *
      * @param requestDto the application request data
      * @return the created application
      * @throws IllegalStateException if application already exists
      */
-    public ApplicationResponseDto createApplication(
+    public Application createApplication(
             final ApplicationRequestDto requestDto) {
-        log.info("Creating application for announcement {} by guardian {}",
-                requestDto.getAnnouncementId(), requestDto.getGuardianUsername());
+        log.info("Creating application for announcement {} "
+                + "by guardian {}",
+                requestDto.getAnnouncementId(),
+                requestDto.getGuardianUsername());
+
+        // Check if the guardian is applying to their own announcement
+        if (getAnnouncementOwnerUsername(
+                requestDto.getAnnouncementId()).equals(
+                        requestDto.getGuardianUsername())) {
+            log.warn("Owner {} cannot apply to their own announcement {}",
+                    requestDto.getGuardianUsername(),
+                    requestDto.getAnnouncementId());
+            throw new IllegalStateException(
+                    "Owner cannot apply to their own announcement");
+        }
 
         // Check if application already exists
-        if (applicationRepository.existsByAnnouncementIdAndGuardianUsername(
-                requestDto.getAnnouncementId(), requestDto.getGuardianUsername())) {
+        if (applicationRepository
+                .existsByAnnouncementIdAndGuardianUsername(
+                        requestDto.getAnnouncementId(),
+                        requestDto.getGuardianUsername())) {
             log.warn("Application already exists for announcement {} "
                     + "and guardian {}", requestDto.getAnnouncementId(),
                     requestDto.getGuardianUsername());
@@ -61,7 +81,20 @@ public class ApplicationService {
         Application savedApplication = applicationRepository.save(application);
         log.info("Application created with id {}", savedApplication.getId());
 
-        return mapToResponseDto(savedApplication);
+        return savedApplication;
+    }
+
+    /**
+     * Creates a new application and returns the DTO.
+     *
+     * @param requestDto the application request data
+     * @return the created application as DTO
+     * @throws IllegalStateException if application already exists
+     */
+    public ApplicationResponseDto createApplicationDto(
+            final ApplicationRequestDto requestDto) {
+        Application application = createApplication(requestDto);
+        return mapToResponseDto(application);
     }
 
     /**
@@ -119,8 +152,10 @@ public class ApplicationService {
     @Transactional(readOnly = true)
     public List<ApplicationResponseDto> getApplicationsByGuardianUsername(
             final String guardianUsername) {
-        log.info("Fetching applications for guardian {}", guardianUsername);
-        return applicationRepository.findByGuardianUsername(guardianUsername).stream()
+        log.info("Fetching applications for guardian {}",
+                guardianUsername);
+        return applicationRepository
+                .findByGuardianUsername(guardianUsername).stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }
@@ -169,9 +204,12 @@ public class ApplicationService {
      * @return list of applications
      */
     @Transactional(readOnly = true)
-    public List<ApplicationResponseDto> getApplicationsByGuardianUsernameAndStatus(
-            final String guardianUsername, final ApplicationStatus status) {
-        log.info("Fetching applications for guardian {} with status {}",
+    public List<ApplicationResponseDto>
+            getApplicationsByGuardianUsernameAndStatus(
+                    final String guardianUsername,
+                    final ApplicationStatus status) {
+        log.info("Fetching applications for guardian {} "
+                + "with status {}",
                 guardianUsername, status);
         return applicationRepository
                 .findByGuardianUsernameAndStatus(guardianUsername, status)
@@ -221,6 +259,20 @@ public class ApplicationService {
 
         applicationRepository.deleteById(id);
         log.info("Application {} deleted successfully", id);
+    }
+
+    private String getAnnouncementOwnerUsername(
+            final Integer announcementId) {
+        // Use Kafka to asynchronously get announcement owner
+        try {
+            return announcementOwnerKafkaService
+                    .getAnnouncementOwner(announcementId)
+                    .get(); // Blocks until response received or timeout
+        } catch (Exception e) {
+            System.err.println("⚠️ Error getting announcement owner: "
+                    + e.getMessage());
+            return null;
+        }
     }
 
     private ApplicationResponseDto mapToResponseDto(

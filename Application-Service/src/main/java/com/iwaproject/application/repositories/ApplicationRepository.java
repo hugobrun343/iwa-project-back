@@ -67,4 +67,18 @@ public interface ApplicationRepository
      */
     boolean existsByAnnouncementIdAndGuardianUsername(
             Integer announcementId, String guardianUsername);
+
+    /**
+     * Checks if an accepted application exists for announcement
+     * and guardian.
+     *
+     * @param guardianUsername the guardian's username
+     * @param announcementId the announcement ID
+     * @param status the application status
+     * @return true if exists, false otherwise
+     */
+    boolean existsByGuardianUsernameAndAnnouncementIdAndStatus(
+            String guardianUsername,
+            Integer announcementId,
+            ApplicationStatus status);
 }

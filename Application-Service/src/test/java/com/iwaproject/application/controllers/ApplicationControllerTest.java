@@ -62,7 +62,8 @@ class ApplicationControllerTest {
 
     @Test
     void createApplication_Success() throws Exception {
-        when(applicationService.createApplication(any(ApplicationRequestDto.class))).thenReturn(responseDto);
+        when(applicationService.createApplicationDto(
+                any(ApplicationRequestDto.class))).thenReturn(responseDto);
 
         mockMvc.perform(post("/api/applications")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -70,23 +71,28 @@ class ApplicationControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.announcementId").value(100))
-                .andExpect(jsonPath("$.guardianUsername").value("guardianUsername"))
+                .andExpect(jsonPath("$.guardianUsername")
+                        .value("guardianUsername"))
                 .andExpect(jsonPath("$.status").value("SENT"));
 
-        verify(applicationService, times(1)).createApplication(any(ApplicationRequestDto.class));
+        verify(applicationService, times(1)).createApplicationDto(
+                any(ApplicationRequestDto.class));
     }
 
     @Test
     void createApplication_AlreadyExists_ReturnsConflict() throws Exception {
-        when(applicationService.createApplication(any(ApplicationRequestDto.class)))
-                .thenThrow(new IllegalStateException("Application already exists"));
+        when(applicationService.createApplicationDto(
+                any(ApplicationRequestDto.class)))
+                .thenThrow(new IllegalStateException(
+                        "Application already exists"));
 
         mockMvc.perform(post("/api/applications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isConflict());
 
-        verify(applicationService, times(1)).createApplication(any(ApplicationRequestDto.class));
+        verify(applicationService, times(1)).createApplicationDto(
+                any(ApplicationRequestDto.class));
     }
 
     @Test

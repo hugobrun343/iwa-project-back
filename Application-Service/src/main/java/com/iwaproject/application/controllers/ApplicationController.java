@@ -60,7 +60,7 @@ public final class ApplicationController {
                 + ", Creating new application");
         try {
             ApplicationResponseDto response =
-                    applicationService.createApplication(requestDto);
+                    applicationService.createApplicationDto(requestDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalStateException e) {
             kafkaLogService.error(LOGGER_NAME,

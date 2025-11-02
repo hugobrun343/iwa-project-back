@@ -45,6 +45,12 @@ public class AnnouncementService {
     private final AnnouncementMapper announcementMapper;
 
     /**
+     * The application verification Kafka service.
+     */
+    private final ApplicationVerificationKafkaService
+            applicationVerificationKafkaService;
+
+    /**
      * Create a new announcement from DTO.
      * @param requestDto the announcement request DTO
      * @return the created announcement
@@ -214,6 +220,7 @@ public class AnnouncementService {
     /**
      * Get an announcement by id.
      * @param id the announcement id
+     * @param username the username of the user requesting the announcement
      * @return the announcement if found
      */
     @Transactional(readOnly = true)
@@ -227,20 +234,25 @@ public class AnnouncementService {
 
         // verify if the user is the owner of the announcement
         // or has an accepted application for it
-        boolean isOwner = username != null && username.equals(announcement.getOwnerUsername());
+        boolean isOwner = username != null
+                && username.equals(announcement.getOwnerUsername());
         boolean hasAccess = isOwner || hasUserAcceptedApplication(
                 username, announcement.getId());
 
-        // Load images related to the announcement. If the user has no access,
-        // only load public images from the repository to avoid fetching private
-        // records and to improve performance.
+        // Attach the images to the announcement before returning
+        // Load images related to the announcement. If the user has no
+        // access, only load public images from the repository to avoid
+        // fetching private records and to improve performance.
         List<Image> images;
         if (!hasAccess) {
-            images = imageRepository.findByAnnouncementId(announcement.getId());
-        } else {
             // Remove sensitive instructions for non-authorized users
             announcement.removeSpecificInstructions();
-            images = imageRepository.findByAnnouncementIdAndIsPrivateFalse(announcement.getId());
+            images = imageRepository
+                    .findByAnnouncementIdAndIsPrivateFalse(
+                            announcement.getId());
+        } else {
+            images = imageRepository.findByAnnouncementId(
+                    announcement.getId());
         }
 
         // Attach the images to the announcement before returning
@@ -267,9 +279,11 @@ public class AnnouncementService {
         return announcements.stream()
                 .map(announcement -> {
                     List<Image> publicImages =
-                            imageRepository.findByAnnouncementIdAndIsPrivateFalse(
-                                    announcement.getId());
-                    return announcementMapper.toResponseDto(announcement, publicImages);
+                            imageRepository
+                                    .findByAnnouncementIdAndIsPrivateFalse(
+                                            announcement.getId());
+                    return announcementMapper.toResponseDto(
+                            announcement, publicImages);
                 })
                 .collect(java.util.stream.Collectors.toList());
     }
@@ -310,18 +324,49 @@ public class AnnouncementService {
                 ownerUsername, status);
     }
 
+    /**
+     * Get public images for an announcement.
+     * @param announcementId the announcement ID
+     * @return list of public images
+     */
     @Transactional(readOnly = true)
-    public List<Image> getPublicImagesByAnnouncement(final Long announcementId) {
-        return imageRepository.findByAnnouncementIdAndIsPrivateFalse(announcementId);
+    public List<Image> getPublicImagesByAnnouncement(
+            final Long announcementId) {
+        return imageRepository
+                .findByAnnouncementIdAndIsPrivateFalse(announcementId);
     }
 
+    /**
+     * Get all images (including private) for an announcement.
+     * @param announcementId the announcement ID
+     * @return list of all images
+     */
     @Transactional(readOnly = true)
-    public List<Image> getPrivateImagesByAnnouncement(final Long announcementId) {
-        return imageRepository.findByAnnouncementId(announcementId);
+    public List<Image> getPrivateImagesByAnnouncement(
+            final Long announcementId) {
+        return imageRepository.findByAnnouncementId(
+                announcementId);
     }
 
-    private boolean hasUserAcceptedApplication(String username, Long id) {
-        // Placeholder for actual implementation
-        return false;
+    /**
+     * Check if user has an accepted application for an announcement.
+     * @param username the username
+     * @param id the announcement ID
+     * @return true if user has accepted application, false otherwise
+     */
+    private boolean hasUserAcceptedApplication(
+            final String username, final Long id) {
+        // Use Kafka to asynchronously verify if user has accepted
+        // application. Wait for the result with a timeout (blocking here
+        // is acceptable as we need the result to proceed)
+        try {
+            return applicationVerificationKafkaService
+                    .hasUserAcceptedApplication(username, id)
+                    .get(); // Blocks until response received or timeout
+        } catch (Exception e) {
+            System.err.println("⚠️ Error verifying application: "
+                    + e.getMessage());
+            return false;
+        }
     }
 }
