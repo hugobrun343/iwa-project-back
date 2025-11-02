@@ -1,0 +1,31 @@
+meta {
+  name: Get Applications By Status
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/applications?status=PENDING
+  body: none
+  auth: bearer
+}
+
+params:query {
+  status: PENDING
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log(`✅ Retrieved ${Array.isArray(res.body) ? res.body.length : 0} applications with status`);
+  } else {
+    console.error('❌ Failed to get applications:', res.status);
+  }
+}
+
+docs {
+  Available statuses: PENDING, ACCEPTED, REJECTED, WITHDRAWN, CANCELLED
+}

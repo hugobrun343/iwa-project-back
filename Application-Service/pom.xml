@@ -30,6 +30,8 @@
         <java.version>21</java.version>
         <jacoco.version>0.8.12</jacoco.version>
         <jacoco.coverage.minimum>0.00</jacoco.coverage.minimum>
+        <checkstyle.version>10.12.4</checkstyle.version>
+        <maven-checkstyle-plugin.version>3.3.1</maven-checkstyle-plugin.version>
         <sonar.coverage.exclusions>
             **/config/**,
             **/dto/**,
@@ -41,6 +43,17 @@
         </sonar.coverage.exclusions>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+            <version>3.3.10</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.32</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>

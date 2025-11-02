@@ -1,0 +1,35 @@
+meta {
+  name: Update Application Status
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{GATEWAY_URL}}/api/applications/1/status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "status": "ACCEPTED"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Application status updated:', res.body.status);
+  } else if (res.status === 404) {
+    console.error('❌ Application not found');
+  } else {
+    console.error('❌ Failed to update status:', res.status, res.body);
+  }
+}
+
+docs {
+  Available statuses: PENDING, ACCEPTED, REJECTED, WITHDRAWN, CANCELLED
+}

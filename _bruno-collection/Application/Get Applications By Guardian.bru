@@ -1,0 +1,27 @@
+meta {
+  name: Get Applications By Guardian
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/applications?guardianId=2
+  body: none
+  auth: bearer
+}
+
+params:query {
+  guardianId: 2
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log(`✅ Retrieved ${Array.isArray(res.body) ? res.body.length : 0} applications for guardian`);
+  } else {
+    console.error('❌ Failed to get applications:', res.status);
+  }
+}

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,13 +43,18 @@ public class AnnouncementController {
      * Create a new announcement.
      * POST /api/announcements
      *
+     * @param username the username from the authentication header
      * @param requestDto the announcement request DTO
      * @return the created announcement with HTTP 201 status
      */
     @PostMapping
     public ResponseEntity<AnnouncementResponseDto> createAnnouncement(
+            @RequestHeader("X-Username") final String username,
             @RequestBody final AnnouncementRequestDto requestDto) {
         try {
+            // Set the owner username from the authenticated user
+            requestDto.setOwnerUsername(username);
+
             Announcement createdAnnouncement =
                     announcementService
                             .createAnnouncementFromDto(requestDto);
@@ -132,48 +138,61 @@ public class AnnouncementController {
      * GET /api/announcements/{id}
      *
      * @param id the announcement id
+     * @param username the username of the user requesting the announcement
      * @return the announcement if found
      */
     @GetMapping("/{id}")
     public ResponseEntity<AnnouncementResponseDto> getById(
+            @RequestHeader("X-Username") final String username,
             @PathVariable final Long id) {
-        return announcementService.getAnnouncementById(id)
-                .map(announcementMapper::toResponseDto)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            Announcement announcement =
+                    announcementService.getAnnouncementById(id, username);
+            AnnouncementResponseDto responseDto =
+                    announcementMapper.toResponseDto(announcement);
+            return ResponseEntity.ok(responseDto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /**
      * Get all announcements.
      * GET /api/announcements
      *
-     * @param ownerId the owner id
+     * @param ownerUsername the owner username
      * @param status the announcement status
      * @return list of all announcements
      */
     @GetMapping
     public ResponseEntity<List<AnnouncementResponseDto>> getAll(
-            @RequestParam(required = false) final Long ownerId,
+            @RequestParam(required = false) final String ownerUsername,
             @RequestParam(required = false)
             final AnnouncementStatus status) {
 
+        // If no filters, return all with public images
+        if (ownerUsername == null && status == null) {
+            List<AnnouncementResponseDto> responseDtos =
+                    announcementService.getAllAnnouncementsWithPublicImages();
+            return ResponseEntity.ok(responseDtos);
+        }
+
+        // Otherwise use the filtered approach
         List<Announcement> announcements;
 
-        if (ownerId != null && status != null) {
+        if (ownerUsername != null && status != null) {
             announcements =
                     announcementService
-                            .getAnnouncementsByOwnerIdAndStatus(
-                                    ownerId, status);
-        } else if (ownerId != null) {
+                            .getAnnouncementsByOwnerUsernameAndStatus(
+                                    ownerUsername, status);
+        } else if (ownerUsername != null) {
             announcements =
                     announcementService
-                            .getAnnouncementsByOwnerId(ownerId);
-        } else if (status != null) {
+                            .getAnnouncementsByOwnerUsername(ownerUsername);
+        } else {
             announcements =
                     announcementService
                             .getAnnouncementsByStatus(status);
-        } else {
-            announcements = announcementService.getAllAnnouncements();
         }
 
         List<AnnouncementResponseDto> responseDtos =
@@ -182,17 +201,19 @@ public class AnnouncementController {
     }
 
     /**
-     * Get announcements by owner id.
-     * GET /api/announcements/owner/{ownerId}
+     * Get announcements by owner username.
+     * GET /api/announcements/owner/{ownerUsername}
      *
-     * @param ownerId the owner id
+     * @param ownerUsername the owner username
      * @return list of announcements for the owner
      */
-    @GetMapping("/owner/{ownerId}")
-    public ResponseEntity<List<AnnouncementResponseDto>> getByOwnerId(
-            @PathVariable final Long ownerId) {
+    @GetMapping("/owner/{ownerUsername}")
+    public ResponseEntity<List<AnnouncementResponseDto>>
+            getByOwner(
+                    @PathVariable final String ownerUsername) {
         List<Announcement> announcements =
-                announcementService.getAnnouncementsByOwnerId(ownerId);
+                announcementService.getAnnouncementsByOwnerUsername(
+                        ownerUsername);
         List<AnnouncementResponseDto> responseDtos =
                 announcementMapper.toResponseDtoList(announcements);
         return ResponseEntity.ok(responseDtos);

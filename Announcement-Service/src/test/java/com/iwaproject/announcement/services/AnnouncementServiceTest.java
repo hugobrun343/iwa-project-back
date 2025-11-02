@@ -1,10 +1,15 @@
 package com.iwaproject.announcement.services;
 
+import com.iwaproject.announcement.dto.AnnouncementMapper;
+import com.iwaproject.announcement.dto.AnnouncementRequestDto;
+import com.iwaproject.announcement.dto.AnnouncementResponseDto;
 import com.iwaproject.announcement.entities.Announcement;
 import com.iwaproject.announcement.entities.Announcement.AnnouncementStatus;
 import com.iwaproject.announcement.entities.CareType;
+import com.iwaproject.announcement.entities.Image;
 import com.iwaproject.announcement.repositories.AnnouncementRepository;
 import com.iwaproject.announcement.repositories.CareTypeRepository;
+import com.iwaproject.announcement.repositories.ImageRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,11 +23,13 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -38,6 +45,15 @@ class AnnouncementServiceTest {
     @Mock
     private CareTypeRepository careTypeRepository;
 
+    @Mock
+    private ImageRepository imageRepository;
+
+    @Mock
+    private AnnouncementMapper announcementMapper;
+
+    @Mock
+    private ApplicationVerificationKafkaService applicationVerificationKafkaService;
+
     @InjectMocks
     private AnnouncementService announcementService;
 
@@ -50,7 +66,7 @@ class AnnouncementServiceTest {
 
         announcement = new Announcement();
         announcement.setId(1L);
-        announcement.setOwnerId(100L);
+        announcement.setOwnerUsername("test");
         announcement.setTitle("Recherche infirmier");
         announcement.setLocation("Paris");
         announcement.setDescription("Besoin d'un infirmier");
@@ -73,7 +89,7 @@ class AnnouncementServiceTest {
         Announcement newAnnouncement = new Announcement();
         newAnnouncement.setCareType(careType);
         newAnnouncement.setTitle("Test");
-        newAnnouncement.setOwnerId(100L);
+        newAnnouncement.setOwnerUsername("test");
 
         when(careTypeRepository.findById(1L)).thenReturn(Optional.of(careType));
         when(announcementRepository.save(any(Announcement.class))).thenReturn(announcement);
@@ -234,11 +250,11 @@ class AnnouncementServiceTest {
         when(announcementRepository.findById(1L)).thenReturn(Optional.of(announcement));
 
         // When
-        Optional<Announcement> result = announcementService.getAnnouncementById(1L);
+        Announcement result = announcementService.getAnnouncementById(1L, "test");
 
         // Then
-        assertThat(result).isPresent();
-        assertThat(result.get().getId()).isEqualTo(1L);
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(1L);
         verify(announcementRepository).findById(1L);
     }
 
@@ -249,11 +265,9 @@ class AnnouncementServiceTest {
         when(announcementRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When
-        Optional<Announcement> result = announcementService.getAnnouncementById(999L);
-
-        // Then
-        assertThat(result).isEmpty();
-        verify(announcementRepository).findById(999L);
+        assertThatThrownBy(() -> announcementService.getAnnouncementById(999L, "test"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Announcement not found with id: 999");
     }
 
     @Test
@@ -276,15 +290,15 @@ class AnnouncementServiceTest {
     void testGetAnnouncementsByOwnerId() {
         // Given
         List<Announcement> announcements = List.of(announcement);
-        when(announcementRepository.findByOwnerId(100L)).thenReturn(announcements);
+        when(announcementRepository.findByOwnerUsername("test")).thenReturn(announcements);
 
         // When
-        List<Announcement> result = announcementService.getAnnouncementsByOwnerId(100L);
+        List<Announcement> result = announcementService.getAnnouncementsByOwnerUsername("test");
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getOwnerId()).isEqualTo(100L);
-        verify(announcementRepository).findByOwnerId(100L);
+        assertThat(result.getFirst().getOwnerUsername()).isEqualTo("test");
+        verify(announcementRepository).findByOwnerUsername("test");
     }
 
     @Test
@@ -299,7 +313,7 @@ class AnnouncementServiceTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getStatus()).isEqualTo(AnnouncementStatus.PUBLISHED);
+        assertThat(result.getFirst().getStatus()).isEqualTo(AnnouncementStatus.PUBLISHED);
         verify(announcementRepository).findByStatus(AnnouncementStatus.PUBLISHED);
     }
 
@@ -308,16 +322,187 @@ class AnnouncementServiceTest {
     void testGetAnnouncementsByOwnerIdAndStatus() {
         // Given
         List<Announcement> announcements = List.of(announcement);
-        when(announcementRepository.findByOwnerIdAndStatus(100L, AnnouncementStatus.PUBLISHED))
+        when(announcementRepository.findByOwnerUsernameAndStatus("test", AnnouncementStatus.PUBLISHED))
                 .thenReturn(announcements);
 
         // When
-        List<Announcement> result = announcementService.getAnnouncementsByOwnerIdAndStatus(100L, AnnouncementStatus.PUBLISHED);
+        List<Announcement> result = announcementService.getAnnouncementsByOwnerUsernameAndStatus("test", AnnouncementStatus.PUBLISHED);
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getOwnerId()).isEqualTo(100L);
-        assertThat(result.get(0).getStatus()).isEqualTo(AnnouncementStatus.PUBLISHED);
-        verify(announcementRepository).findByOwnerIdAndStatus(100L, AnnouncementStatus.PUBLISHED);
+        assertThat(result.getFirst().getOwnerUsername()).isEqualTo("test");
+        assertThat(result.getFirst().getStatus()).isEqualTo(AnnouncementStatus.PUBLISHED);
+        verify(announcementRepository).findByOwnerUsernameAndStatus("test", AnnouncementStatus.PUBLISHED);
+    }
+
+    @Test
+    @DisplayName("Should create announcement from DTO successfully")
+    void testCreateAnnouncementFromDto_Success() {
+        // Given
+        AnnouncementRequestDto requestDto = new AnnouncementRequestDto();
+        requestDto.setCareTypeLabel("Soins infirmiers");
+        requestDto.setTitle("Test Announcement");
+        requestDto.setOwnerUsername("test");
+        requestDto.setLocation("Paris");
+
+        when(careTypeRepository.findByLabel("Soins infirmiers")).thenReturn(Optional.of(careType));
+        when(announcementMapper.toEntity(any(AnnouncementRequestDto.class), any(CareType.class)))
+                .thenReturn(announcement);
+        when(announcementRepository.save(any(Announcement.class))).thenReturn(announcement);
+
+        // When
+        Announcement result = announcementService.createAnnouncementFromDto(requestDto);
+
+        // Then
+        assertThat(result).isNotNull();
+        verify(careTypeRepository).findByLabel("Soins infirmiers");
+        verify(announcementMapper).toEntity(any(AnnouncementRequestDto.class), any(CareType.class));
+        verify(announcementRepository).save(any(Announcement.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when care type label not found")
+    void testCreateAnnouncementFromDto_CareTypeLabelNotFound() {
+        // Given
+        AnnouncementRequestDto requestDto = new AnnouncementRequestDto();
+        requestDto.setCareTypeLabel("Unknown Care Type");
+
+        when(careTypeRepository.findByLabel("Unknown Care Type")).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> announcementService.createAnnouncementFromDto(requestDto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Care type not found with label");
+
+        verify(careTypeRepository).findByLabel("Unknown Care Type");
+        verify(announcementRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should get all announcements with public images")
+    void testGetAllAnnouncementsWithPublicImages() {
+        // Given
+        List<Announcement> announcements = Arrays.asList(announcement, announcement);
+        List<Image> publicImages = Arrays.asList(new Image(), new Image());
+        AnnouncementResponseDto responseDto = new AnnouncementResponseDto();
+
+        when(announcementRepository.findAll()).thenReturn(announcements);
+        when(imageRepository.findByAnnouncementIdAndIsPrivateFalse(anyLong())).thenReturn(publicImages);
+        when(announcementMapper.toResponseDto(any(Announcement.class), anyList())).thenReturn(responseDto);
+
+        // When
+        List<AnnouncementResponseDto> result = announcementService.getAllAnnouncementsWithPublicImages();
+
+        // Then
+        assertThat(result).hasSize(2);
+        verify(announcementRepository).findAll();
+        verify(imageRepository, times(2)).findByAnnouncementIdAndIsPrivateFalse(anyLong());
+        verify(announcementMapper, times(2)).toResponseDto(any(Announcement.class), anyList());
+    }
+
+    @Test
+    @DisplayName("Should get public images by announcement")
+    void testGetPublicImagesByAnnouncement() {
+        // Given
+        List<Image> publicImages = Arrays.asList(new Image(), new Image());
+        when(imageRepository.findByAnnouncementIdAndIsPrivateFalse(1L)).thenReturn(publicImages);
+
+        // When
+        List<Image> result = announcementService.getPublicImagesByAnnouncement(1L);
+
+        // Then
+        assertThat(result).hasSize(2);
+        verify(imageRepository).findByAnnouncementIdAndIsPrivateFalse(1L);
+    }
+
+    @Test
+    @DisplayName("Should get private images by announcement")
+    void testGetPrivateImagesByAnnouncement() {
+        // Given
+        List<Image> allImages = Arrays.asList(new Image(), new Image(), new Image());
+        when(imageRepository.findByAnnouncementId(1L)).thenReturn(allImages);
+
+        // When
+        List<Image> result = announcementService.getPrivateImagesByAnnouncement(1L);
+
+        // Then
+        assertThat(result).hasSize(3);
+        verify(imageRepository).findByAnnouncementId(1L);
+    }
+
+    @Test
+    @DisplayName("Should get announcement by id with access for owner")
+    void testGetAnnouncementById_OwnerHasFullAccess() {
+        // Given
+        List<Image> allImages = Arrays.asList(new Image(), new Image());
+        when(announcementRepository.findById(1L)).thenReturn(Optional.of(announcement));
+        when(imageRepository.findByAnnouncementId(1L)).thenReturn(allImages);
+
+        // When
+        Announcement result = announcementService.getAnnouncementById(1L, "test");
+
+        // Then
+        assertThat(result).isNotNull();
+        verify(announcementRepository).findById(1L);
+        verify(imageRepository).findByAnnouncementId(1L);
+        verify(imageRepository, never()).findByAnnouncementIdAndIsPrivateFalse(anyLong());
+    }
+
+    @Test
+    @DisplayName("Should get announcement by id with limited access for non-owner")
+    void testGetAnnouncementById_NonOwnerHasLimitedAccess() {
+        // Given
+        List<Image> publicImages = Arrays.asList(new Image());
+        when(announcementRepository.findById(1L)).thenReturn(Optional.of(announcement));
+        when(applicationVerificationKafkaService.hasUserAcceptedApplication(anyString(), anyLong()))
+                .thenReturn(CompletableFuture.completedFuture(false));
+        when(imageRepository.findByAnnouncementIdAndIsPrivateFalse(1L)).thenReturn(publicImages);
+
+        // When
+        Announcement result = announcementService.getAnnouncementById(1L, "otherUser");
+
+        // Then
+        assertThat(result).isNotNull();
+        verify(announcementRepository).findById(1L);
+        verify(imageRepository).findByAnnouncementIdAndIsPrivateFalse(1L);
+        verify(imageRepository, never()).findByAnnouncementId(1L);
+    }
+
+    @Test
+    @DisplayName("Should get announcement by id with access for user with accepted application")
+    void testGetAnnouncementById_UserWithAcceptedApplicationHasAccess() {
+        // Given
+        List<Image> allImages = Arrays.asList(new Image(), new Image());
+        when(announcementRepository.findById(1L)).thenReturn(Optional.of(announcement));
+        when(applicationVerificationKafkaService.hasUserAcceptedApplication("guardian", 1L))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        when(imageRepository.findByAnnouncementId(1L)).thenReturn(allImages);
+
+        // When
+        Announcement result = announcementService.getAnnouncementById(1L, "guardian");
+
+        // Then
+        assertThat(result).isNotNull();
+        verify(announcementRepository).findById(1L);
+        verify(imageRepository).findByAnnouncementId(1L);
+    }
+
+    @Test
+    @DisplayName("Should handle exception when verifying application access")
+    void testGetAnnouncementById_VerificationException() {
+        // Given
+        List<Image> publicImages = Arrays.asList(new Image());
+        when(announcementRepository.findById(1L)).thenReturn(Optional.of(announcement));
+        when(applicationVerificationKafkaService.hasUserAcceptedApplication(anyString(), anyLong()))
+                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Verification failed")));
+        when(imageRepository.findByAnnouncementIdAndIsPrivateFalse(1L)).thenReturn(publicImages);
+
+        // When
+        Announcement result = announcementService.getAnnouncementById(1L, "otherUser");
+
+        // Then
+        assertThat(result).isNotNull();
+        verify(announcementRepository).findById(1L);
+        verify(imageRepository).findByAnnouncementIdAndIsPrivateFalse(1L);
     }
 }
