@@ -1,0 +1,38 @@
+meta {
+  name: Get Discussion By Id
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/discussions/{{DISCUSSION_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Discussion retrieved successfully');
+    console.log('💬 Discussion ID:', res.body.id);
+    console.log('📢 Announcement ID:', res.body.announcementId);
+    console.log('👤 Sender:', res.body.senderId);
+    console.log('👤 Recipient:', res.body.recipientId);
+    console.log('📅 Created at:', res.body.createdAt);
+    console.log('🔄 Updated at:', res.body.updatedAt);
+  } else if (res.status === 404) {
+    console.error('❌ Discussion not found');
+  } else if (res.status === 403) {
+    console.error('❌ You are not a participant in this discussion');
+  } else {
+    console.error('❌ Failed to get discussion:', res.status, res.body);
+  }
+}
+

@@ -1,0 +1,44 @@
+meta {
+  name: Create Discussion
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/discussions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+body:json {
+  {
+    "announcementId": 1,
+    "recipientId": "recipient-user-id"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    console.log('✅ Discussion created successfully');
+    console.log('💬 Discussion ID:', res.body.id);
+    console.log('📢 Announcement ID:', res.body.announcementId);
+    console.log('👤 Sender:', res.body.senderId);
+    console.log('👤 Recipient:', res.body.recipientId);
+    bru.setEnvVar('DISCUSSION_ID', res.body.id);
+  } else if (res.status === 200) {
+    console.log('ℹ️ Discussion already exists');
+    console.log('💬 Discussion ID:', res.body.id);
+    bru.setEnvVar('DISCUSSION_ID', res.body.id);
+  } else {
+    console.error('❌ Failed to create discussion:', res.status, res.body);
+  }
+}
+

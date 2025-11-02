@@ -1,0 +1,42 @@
+meta {
+  name: Create Message
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/discussions/{{DISCUSSION_ID}}/messages
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+body:json {
+  {
+    "content": "Hello! This is a test message from Bruno."
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    console.log('✅ Message created successfully');
+    console.log('💬 Message ID:', res.body.id);
+    console.log('📝 Content:', res.body.content);
+    console.log('👤 Author:', res.body.authorId);
+    console.log('📅 Created at:', res.body.createdAt);
+  } else if (res.status === 404) {
+    console.error('❌ Discussion not found');
+  } else if (res.status === 403) {
+    console.error('❌ You are not a participant in this discussion');
+  } else {
+    console.error('❌ Failed to create message:', res.status, res.body);
+  }
+}
+
