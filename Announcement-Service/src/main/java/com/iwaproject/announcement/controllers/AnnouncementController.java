@@ -54,7 +54,7 @@ public class AnnouncementController {
         try {
             // Set the owner username from the authenticated user
             requestDto.setOwnerUsername(username);
-            
+
             Announcement createdAnnouncement =
                     announcementService
                             .createAnnouncementFromDto(requestDto);
