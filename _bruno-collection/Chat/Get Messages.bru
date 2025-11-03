@@ -1,7 +1,7 @@
 meta {
   name: Get Messages
   type: http
-  seq: 4
+  seq: 6
 }
 
 get {
@@ -18,6 +18,14 @@ headers {
   X-Username: {{USER_ID}}
 }
 
+script:pre-request {
+  if (!{{DISCUSSION_ID}} || {{DISCUSSION_ID}} === '') {
+    console.error('❌ DISCUSSION_ID is required');
+    console.error('💡 Run "Create Message" first to create a discussion.');
+    bru.setEnvVar('_skip', 'true');
+  }
+}
+
 script:post-response {
   if (res.status === 200) {
     console.log('✅ Messages retrieved successfully');
@@ -31,10 +39,15 @@ script:post-response {
     } else {
       console.log('💬 No messages in this discussion yet');
     }
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
   } else if (res.status === 404) {
     console.error('❌ Discussion not found');
+    console.error('Response:', res.body);
   } else if (res.status === 403) {
     console.error('❌ You are not a participant in this discussion');
+    console.error('Response:', res.body);
   } else {
     console.error('❌ Failed to get messages:', res.status, res.body);
   }

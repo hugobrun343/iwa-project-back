@@ -1,7 +1,7 @@
 meta {
   name: Delete Discussion
   type: http
-  seq: 6
+  seq: 7
 }
 
 delete {
@@ -18,14 +18,28 @@ headers {
   X-Username: {{USER_ID}}
 }
 
+script:pre-request {
+  if (!{{DISCUSSION_ID}} || {{DISCUSSION_ID}} === '') {
+    console.error('❌ DISCUSSION_ID is required');
+    bru.setEnvVar('_skip', 'true');
+  }
+}
+
 script:post-response {
   if (res.status === 204) {
     console.log('✅ Discussion deleted successfully');
     console.log('💬 Discussion ID:', {{DISCUSSION_ID}});
+    bru.setEnvVar('DISCUSSION_ID', '');
+    console.log('💾 DISCUSSION_ID cleared');
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
   } else if (res.status === 404) {
     console.error('❌ Discussion not found');
+    console.error('Response:', res.body);
   } else if (res.status === 403) {
     console.error('❌ You are not a participant in this discussion');
+    console.error('Response:', res.body);
   } else {
     console.error('❌ Failed to delete discussion:', res.status, res.body);
   }

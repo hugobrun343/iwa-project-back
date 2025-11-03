@@ -21,10 +21,20 @@ body:form-urlencoded {
 script:post-response {
   if (res.status === 200) {
     const data = res.body;
-    bru.setEnvVar('ACCESS_TOKEN', data.access_token);
-    bru.setEnvVar('REFRESH_TOKEN', data.refresh_token);
-    console.log('✅ Token saved! Expires in', data.expires_in, 'seconds');
-    console.log('🔑 Access token:', data.access_token.substring(0, 50) + '...');
+    if (data.access_token) {
+      bru.setEnvVar('ACCESS_TOKEN', data.access_token);
+      bru.setEnvVar('REFRESH_TOKEN', data.refresh_token || '');
+      console.log('✅ Token saved! Expires in', data.expires_in, 'seconds');
+      console.log('🔑 Access token:', data.access_token.substring(0, 50) + '...');
+    } else {
+      console.error('❌ No access token in response');
+    }
+  } else if (res.status === 401) {
+    console.error('❌ Authentication failed - Invalid credentials');
+    console.error('Response:', res.body);
+  } else if (res.status === 400) {
+    console.error('❌ Bad request - Check your credentials and client configuration');
+    console.error('Response:', res.body);
   } else {
     console.error('❌ Login failed:', res.status, res.body);
   }

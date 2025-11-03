@@ -26,7 +26,15 @@ script:post-response {
     if (res.body.content && res.body.content.length > 0) {
       console.log('💬 First discussion:', res.body.content[0]);
       bru.setEnvVar('DISCUSSION_ID', res.body.content[0].id);
+      if (res.body.content[0].announcementId) {
+        bru.setEnvVar('ANNOUNCEMENT_ID', res.body.content[0].announcementId);
+      }
+    } else {
+      console.log('💬 No discussions found');
     }
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
   } else {
     console.error('❌ Failed to get discussions:', res.status, res.body);
   }

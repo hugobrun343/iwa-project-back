@@ -5,13 +5,9 @@ meta {
 }
 
 get {
-  url: {{GATEWAY_URL}}/api/discussions
+  url: {{GATEWAY_URL}}/api/discussions?announcementId={{ANNOUNCEMENT_ID}}&recipientId={{RECIPIENT_ID}}
   body: none
   auth: bearer
-  params {
-    announcementId: {{ANNOUNCEMENT_ID}}
-    recipientId: {{RECIPIENT_ID}}
-  }
 }
 
 auth:bearer {
@@ -37,6 +33,9 @@ script:post-response {
       console.log('ℹ️ Discussion not found - returning empty discussion');
       console.log('💬 Discussion will be created when first message is sent');
     }
+  } else if (res.status === 400) {
+    console.error('❌ Bad request - Missing announcementId or recipientId');
+    console.error('Response:', res.body);
   } else {
     console.error('❌ Failed to get discussion:', res.status, res.body);
   }
