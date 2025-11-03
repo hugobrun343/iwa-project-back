@@ -22,10 +22,10 @@ script:post-response {
   if (res.status === 200) {
     const data = res.body;
     if (data.access_token) {
-      bru.setEnvVar('ACCESS_TOKEN', data.access_token);
+    bru.setEnvVar('ACCESS_TOKEN', data.access_token);
       bru.setEnvVar('REFRESH_TOKEN', data.refresh_token || '');
-      console.log('✅ Token saved! Expires in', data.expires_in, 'seconds');
-      console.log('🔑 Access token:', data.access_token.substring(0, 50) + '...');
+    console.log('✅ Token saved! Expires in', data.expires_in, 'seconds');
+    console.log('🔑 Access token:', data.access_token.substring(0, 50) + '...');
     } else {
       console.error('❌ No access token in response');
     }

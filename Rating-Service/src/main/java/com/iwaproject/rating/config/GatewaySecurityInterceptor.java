@@ -1,4 +1,4 @@
-package com.iwaproject.log.config;
+package com.iwaproject.rating.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

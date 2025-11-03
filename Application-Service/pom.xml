@@ -30,8 +30,6 @@
         <java.version>21</java.version>
         <jacoco.version>0.8.12</jacoco.version>
         <jacoco.coverage.minimum>0.00</jacoco.coverage.minimum>
-        <checkstyle.version>10.12.4</checkstyle.version>
-        <maven-checkstyle-plugin.version>3.3.1</maven-checkstyle-plugin.version>
         <sonar.coverage.exclusions>
             **/config/**,
             **/dto/**,
@@ -70,6 +68,12 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- Validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
         <!-- Logback Kafka Appender for centralized logging -->
@@ -188,6 +192,28 @@
                         <goals>
                             <goal>integration-test</goal>
                             <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Checkstyle Plugin for Code Style Checking -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <configLocation>google_checks.xml</configLocation>
+                    <consoleOutput>true</consoleOutput>
+                    <failsOnError>true</failsOnError>
+                    <linkXRef>false</linkXRef>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
                         </goals>
                     </execution>
                 </executions>

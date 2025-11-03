@@ -1,4 +1,4 @@
-package com.iwaproject.announcement.configs;
+package com.iwaproject.announcement.config;
 
 import java.util.HashMap;
 import java.util.Map;

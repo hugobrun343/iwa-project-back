@@ -1,4 +1,4 @@
-package com.iwaproject.user.config;
+package com.iwaproject.rating.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
@@ -6,7 +6,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web configuration for User Service.
+ * Web configuration for Rating Service.
  */
 @Configuration
 @RequiredArgsConstructor
@@ -28,3 +28,4 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**");
     }
 }
+

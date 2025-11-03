@@ -1,4 +1,4 @@
-package com.iwaproject.chat.config;
+package com.iwaproject.application.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Global exception handler for Chat Service.
+ * Global exception handler for Application Service.
  * Handles all uncaught exceptions and returns appropriate HTTP responses.
  */
 @Slf4j
@@ -107,4 +107,3 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 }
-

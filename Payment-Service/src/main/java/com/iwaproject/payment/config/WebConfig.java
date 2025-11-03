@@ -1,4 +1,4 @@
-package com.iwaproject.application.configs;
+package com.iwaproject.payment.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
@@ -6,7 +6,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web configuration for Application Service.
+ * Web configuration for Payment Service.
  */
 @Configuration
 @RequiredArgsConstructor
@@ -28,3 +28,4 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**");
     }
 }
+

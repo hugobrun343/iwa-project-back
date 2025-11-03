@@ -1,4 +1,4 @@
-package com.iwaproject.log.config;
+package com.iwaproject.payment.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * CORS configuration for Log Service.
+ * CORS configuration for Payment Service.
  * Only allows requests from the Gateway.
  */
 @Configuration

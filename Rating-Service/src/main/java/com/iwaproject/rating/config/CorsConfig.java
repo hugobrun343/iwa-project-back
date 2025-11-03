@@ -1,4 +1,4 @@
-package com.iwaproject.application.configs;
+package com.iwaproject.rating.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * CORS configuration for Application Service.
+ * CORS configuration for Rating Service.
  * Only allows requests from the Gateway.
  */
 @Configuration
@@ -63,3 +63,4 @@ public class CorsConfig {
         return source;
     }
 }
+
