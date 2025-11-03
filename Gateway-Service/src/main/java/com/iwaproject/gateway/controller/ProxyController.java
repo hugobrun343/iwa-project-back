@@ -392,7 +392,7 @@ public class ProxyController {
      * @param response the HTTP servlet response
      * @return response from Application-Service
      */
-    @RequestMapping("/api/applications/**")
+    @RequestMapping({"/api/applications", "/api/applications/**"})
     public ResponseEntity<byte[]> proxyToApplicationService(
         final HttpServletRequest request,
         @RequestBody(required = false) final byte[] body,
