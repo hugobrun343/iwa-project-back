@@ -1,0 +1,25 @@
+meta {
+  name: Remove Favorite
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{GATEWAY_URL}}/api/favorites/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 204) {
+    console.log('✅ Favorite removed successfully');
+  } else if (res.status === 404) {
+    console.warn('⚠️ Favorite not found');
+  } else {
+    console.error('❌ Failed to remove favorite:', res.status, res.body);
+  }
+}

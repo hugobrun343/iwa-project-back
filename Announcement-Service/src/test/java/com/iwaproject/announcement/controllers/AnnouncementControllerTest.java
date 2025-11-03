@@ -61,7 +61,7 @@ class AnnouncementControllerTest {
 
         announcement = new Announcement();
         announcement.setId(1L);
-        announcement.setOwnerId(100L);
+        announcement.setOwnerUsername("test");
         announcement.setTitle("Recherche infirmier");
         announcement.setLocation("Paris");
         announcement.setDescription("Besoin d'un infirmier");
@@ -78,7 +78,7 @@ class AnnouncementControllerTest {
 
         responseDto = new AnnouncementResponseDto();
         responseDto.setId(1L);
-        responseDto.setOwnerId(100L);
+        responseDto.setOwnerUsername("test");
         responseDto.setTitle("Recherche infirmier");
         responseDto.setLocation("Paris");
         responseDto.setDescription("Besoin d'un infirmier");
@@ -94,7 +94,7 @@ class AnnouncementControllerTest {
         responseDto.setCreationDate(announcement.getCreationDate());
 
         requestDto = new AnnouncementRequestDto();
-        requestDto.setOwnerId(100L);
+        requestDto.setOwnerUsername("test");
         requestDto.setTitle("Recherche infirmier");
         requestDto.setLocation("Paris");
         requestDto.setDescription("Besoin d'un infirmier");
@@ -118,13 +118,14 @@ class AnnouncementControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/announcements")
+                        .header("X-Username", "test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.title").value("Recherche infirmier"))
                 .andExpect(jsonPath("$.location").value("Paris"))
-                .andExpect(jsonPath("$.ownerId").value(100L))
+                .andExpect(jsonPath("$.ownerUsername").value("test"))
                 .andExpect(jsonPath("$.status").value("PUBLISHED"));
 
         verify(announcementService).createAnnouncementFromDto(any(AnnouncementRequestDto.class));
@@ -140,6 +141,7 @@ class AnnouncementControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/announcements")
+                        .header("X-Username", "test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isBadRequest());
@@ -251,17 +253,18 @@ class AnnouncementControllerTest {
     @DisplayName("GET /api/announcements/{id} - Should get announcement by id successfully")
     void testGetAnnouncementById_Success() throws Exception {
         // Given
-        when(announcementService.getAnnouncementById(anyLong())).thenReturn(Optional.of(announcement));
+        when(announcementService.getAnnouncementById(anyLong(), anyString())).thenReturn(announcement);
         when(announcementMapper.toResponseDto(any(Announcement.class))).thenReturn(responseDto);
 
         // When & Then
-        mockMvc.perform(get("/api/announcements/1"))
+        mockMvc.perform(get("/api/announcements/1")
+                .header("X-Username", "test"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.title").value("Recherche infirmier"))
-                .andExpect(jsonPath("$.ownerId").value(100L));
+                .andExpect(jsonPath("$.ownerUsername").value("test"));
 
-        verify(announcementService).getAnnouncementById(1L);
+        verify(announcementService).getAnnouncementById(1L, "test");
         verify(announcementMapper).toResponseDto(any(Announcement.class));
     }
 
@@ -269,13 +272,15 @@ class AnnouncementControllerTest {
     @DisplayName("GET /api/announcements/{id} - Should return not found when announcement does not exist")
     void testGetAnnouncementById_NotFound() throws Exception {
         // Given
-        when(announcementService.getAnnouncementById(anyLong())).thenReturn(Optional.empty());
+        when(announcementService.getAnnouncementById(anyLong(), anyString()))
+                .thenThrow(new IllegalArgumentException("Announcement not found"));
 
         // When & Then
-        mockMvc.perform(get("/api/announcements/999"))
+        mockMvc.perform(get("/api/announcements/999")
+                        .header("X-Username", "test"))
                 .andExpect(status().isNotFound());
 
-        verify(announcementService).getAnnouncementById(999L);
+        verify(announcementService).getAnnouncementById(999L, "test");
         verify(announcementMapper, never()).toResponseDto(any(Announcement.class));
     }
 
@@ -286,7 +291,7 @@ class AnnouncementControllerTest {
         List<Announcement> announcements = Arrays.asList(announcement, announcement);
         List<AnnouncementResponseDto> responseDtos = Arrays.asList(responseDto, responseDto);
 
-        when(announcementService.getAllAnnouncements()).thenReturn(announcements);
+        when(announcementService.getAllAnnouncementsWithPublicImages()).thenReturn(responseDtos);
         when(announcementMapper.toResponseDtoList(anyList())).thenReturn(responseDtos);
 
         // When & Then
@@ -296,28 +301,27 @@ class AnnouncementControllerTest {
                 .andExpect(jsonPath("$[0].id").value(1L))
                 .andExpect(jsonPath("$[1].id").value(1L));
 
-        verify(announcementService).getAllAnnouncements();
-        verify(announcementMapper).toResponseDtoList(anyList());
+        verify(announcementService).getAllAnnouncementsWithPublicImages();
     }
 
     @Test
-    @DisplayName("GET /api/announcements?ownerId=100 - Should get announcements by owner id")
-    void testGetAllAnnouncements_WithOwnerId() throws Exception {
+    @DisplayName("GET /api/announcements?ownerUsername=test - Should get announcements by owner username")
+    void testGetAllAnnouncements_WithOwnerUsername() throws Exception {
         // Given
         List<Announcement> announcements = List.of(announcement);
         List<AnnouncementResponseDto> responseDtos = List.of(responseDto);
 
-        when(announcementService.getAnnouncementsByOwnerId(anyLong())).thenReturn(announcements);
+        when(announcementService.getAnnouncementsByOwnerUsername("test")).thenReturn(announcements);
         when(announcementMapper.toResponseDtoList(anyList())).thenReturn(responseDtos);
 
         // When & Then
         mockMvc.perform(get("/api/announcements")
-                        .param("ownerId", "100"))
+                        .param("ownerUsername", "test"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].ownerId").value(100L));
+                .andExpect(jsonPath("$[0].ownerUsername").value("test"));
 
-        verify(announcementService).getAnnouncementsByOwnerId(100L);
+        verify(announcementService).getAnnouncementsByOwnerUsername("test");
         verify(announcementMapper).toResponseDtoList(anyList());
     }
 
@@ -343,26 +347,26 @@ class AnnouncementControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/announcements?ownerId=100&status=PUBLISHED - Should get announcements by owner and status")
+    @DisplayName("GET /api/announcements?ownerUsername=test&status=PUBLISHED - Should get announcements by owner and status")
     void testGetAllAnnouncements_WithOwnerIdAndStatus() throws Exception {
         // Given
         List<Announcement> announcements = List.of(announcement);
         List<AnnouncementResponseDto> responseDtos = List.of(responseDto);
 
-        when(announcementService.getAnnouncementsByOwnerIdAndStatus(anyLong(), any(AnnouncementStatus.class)))
+        when(announcementService.getAnnouncementsByOwnerUsernameAndStatus(anyString(), any(AnnouncementStatus.class)))
                 .thenReturn(announcements);
         when(announcementMapper.toResponseDtoList(anyList())).thenReturn(responseDtos);
 
         // When & Then
         mockMvc.perform(get("/api/announcements")
-                        .param("ownerId", "100")
+                        .param("ownerUsername", "test")
                         .param("status", "PUBLISHED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].ownerId").value(100L))
+                .andExpect(jsonPath("$[0].ownerUsername").value("test"))
                 .andExpect(jsonPath("$[0].status").value("PUBLISHED"));
 
-        verify(announcementService).getAnnouncementsByOwnerIdAndStatus(100L, AnnouncementStatus.PUBLISHED);
+        verify(announcementService).getAnnouncementsByOwnerUsernameAndStatus("test", AnnouncementStatus.PUBLISHED);
         verify(announcementMapper).toResponseDtoList(anyList());
     }
 
@@ -373,16 +377,16 @@ class AnnouncementControllerTest {
         List<Announcement> announcements = List.of(announcement);
         List<AnnouncementResponseDto> responseDtos = List.of(responseDto);
 
-        when(announcementService.getAnnouncementsByOwnerId(anyLong())).thenReturn(announcements);
+        when(announcementService.getAnnouncementsByOwnerUsername("test")).thenReturn(announcements);
         when(announcementMapper.toResponseDtoList(anyList())).thenReturn(responseDtos);
 
         // When & Then
-        mockMvc.perform(get("/api/announcements/owner/100"))
+        mockMvc.perform(get("/api/announcements/owner/test"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].ownerId").value(100L));
+                .andExpect(jsonPath("$[0].ownerUsername").value("test"));
 
-        verify(announcementService).getAnnouncementsByOwnerId(100L);
+        verify(announcementService).getAnnouncementsByOwnerUsername("test");
         verify(announcementMapper).toResponseDtoList(anyList());
     }
 

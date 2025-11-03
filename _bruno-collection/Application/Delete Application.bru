@@ -1,0 +1,25 @@
+meta {
+  name: Delete Application
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{GATEWAY_URL}}/api/applications/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 204) {
+    console.log('✅ Application deleted successfully');
+  } else if (res.status === 404) {
+    console.error('❌ Application not found');
+  } else {
+    console.error('❌ Failed to delete application:', res.status);
+  }
+}

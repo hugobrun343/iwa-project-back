@@ -27,10 +27,8 @@ class KafkaLogServiceTest {
 
     @BeforeEach
     void setUp() {
-        ObjectMapper objectMapper = new ObjectMapper();
         kafkaLogService = new KafkaLogService(
                 kafkaTemplate,
-                objectMapper,
                 "test-logs-topic",
                 "Announcement-Service"
         );
