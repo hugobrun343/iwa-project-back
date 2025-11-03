@@ -54,11 +54,18 @@ public class ProxyController {
      */
     @Value("${APPLICATION_SERVICE_URL}")
     private String applicationServiceUrl;
+  
     /**
      * Favorite service URL.
      */
     @Value("${FAVORITE_SERVICE_URL}")
     private String favoriteServiceUrl;
+  
+    /**
+     * Chat service URL.
+     */
+    @Value("${CHAT_SERVICE_URL}")
+    private String chatServiceUrl;
 
     /**
      * Proxy all /api/users/** requests to User-Service.
@@ -83,6 +90,8 @@ public class ProxyController {
 
         LOGGER.debug("Proxying {} {} to User-Service",
                 request.getMethod(), path);
+        System.out.println("Proxying " + request.getMethod() + " "
+                + path + " to User-Service");
 
         // Copy headers (except Host)
         HttpHeaders headers = new HttpHeaders();
@@ -157,6 +166,7 @@ public class ProxyController {
         String targetUrl = userServiceUrl + "/api/languages";
 
         LOGGER.debug("Proxying GET /api/languages to User-Service");
+        System.out.println("Proxying GET /api/languages to User-Service");
 
         HttpHeaders headers = new HttpHeaders();
         HttpEntity<byte[]> entity = new HttpEntity<>(headers);
@@ -196,6 +206,7 @@ public class ProxyController {
         String targetUrl = userServiceUrl + "/api/specialisations";
 
         LOGGER.debug("Proxying GET /api/specialisations to User-Service");
+        System.out.println("Proxying GET /api/specialisations to User-Service");
 
         HttpHeaders headers = new HttpHeaders();
         HttpEntity<byte[]> entity = new HttpEntity<>(headers);
@@ -243,6 +254,8 @@ public class ProxyController {
 
         LOGGER.debug("Proxying {} {} to Announcement-Service",
                 request.getMethod(), path);
+        System.out.println("Proxying " + request.getMethod() + " "
+                + path + " to Announcement-Service");
 
         // Copy headers (except Host)
         HttpHeaders headers = new HttpHeaders();
@@ -301,6 +314,107 @@ public class ProxyController {
                     bodyBytes, outHeaders, ex.getStatusCode());
         }
     }
+
+    /**
+     * Proxy all /api/discussions/** and /api/me/discussions requests
+     * to Chat-Service.
+     *
+     * @param request the HTTP servlet request
+     * @param body the request body (if any)
+     * @param response the HTTP servlet response
+     * @return response from Chat-Service
+     */
+    @RequestMapping({"/api/discussions/**", "/api/me/discussions"})
+    public ResponseEntity<byte[]> proxyToChatService(
+        final HttpServletRequest request,
+        @RequestBody(required = false) final byte[] body,
+        final HttpServletResponse response) throws IOException {
+        return proxyRequest(request, body, chatServiceUrl, "Chat-Service");
+    }
+
+    /**
+     * Generic method to proxy requests to a microservice.
+     *
+     * @param request the HTTP servlet request
+     * @param body the request body (if any)
+     * @param serviceUrl the base URL of the target service
+     * @param serviceName the name of the service for logging
+     * @return response from the service
+     */
+    private ResponseEntity<byte[]> proxyRequest(
+            final HttpServletRequest request,
+            final byte[] body,
+            final String serviceUrl,
+            final String serviceName) throws IOException {
+
+        String path = request.getRequestURI();
+        String targetUrl = serviceUrl + path;
+        String queryString = request.getQueryString();
+        if (queryString != null && !queryString.isEmpty()) {
+            targetUrl = targetUrl + "?" + queryString;
+        }
+
+        LOGGER.debug("Proxying {} {} to {}",
+                request.getMethod(), path, serviceName);
+        System.out.println("Proxying " + request.getMethod() + " "
+                + path + " to " + serviceName);
+
+        // Copy headers (except Host)
+        HttpHeaders headers = new HttpHeaders();
+        Enumeration<String> headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            if (!headerName.equalsIgnoreCase("host")
+                    && !headerName.equalsIgnoreCase("content-length")) {
+                headers.add(headerName,
+                        request.getHeader(headerName));
+            }
+        }
+
+        HttpEntity<byte[]> entity = new HttpEntity<>(body, headers);
+        HttpMethod method = HttpMethod.valueOf(request.getMethod());
+
+        try {
+            ResponseEntity<byte[]> serviceResponse = restTemplate.exchange(
+                    targetUrl,
+                    method,
+                    entity,
+                    byte[].class
+            );
+
+            // Build sanitized response entity
+            HttpHeaders outHeaders = new HttpHeaders();
+            serviceResponse.getHeaders().forEach((name, values) -> {
+                if (!name.equalsIgnoreCase("transfer-encoding")
+                        && !name.equalsIgnoreCase("content-length")) {
+                    for (String v : values) {
+                        outHeaders.add(name, v);
+                    }
+                }
+            });
+
+            return new ResponseEntity<>(serviceResponse.getBody(), outHeaders,
+                    serviceResponse.getStatusCode());
+        } catch (org.springframework.web.client.HttpStatusCodeException ex) {
+            // Forward non-2xx status from service
+            HttpHeaders outHeaders = new HttpHeaders();
+            HttpHeaders exHeaders = ex.getResponseHeaders();
+            HttpHeaders safeHeaders = (exHeaders != null)
+                    ? exHeaders : new HttpHeaders();
+            safeHeaders.forEach((name, values) -> {
+                if (!name.equalsIgnoreCase("transfer-encoding")
+                        && !name.equalsIgnoreCase("content-length")) {
+                    for (String v : values) {
+                        outHeaders.add(name, v);
+                    }
+                }
+            });
+            byte[] bodyBytes = ex.getResponseBodyAsByteArray();
+            return new ResponseEntity<>(
+                    bodyBytes, outHeaders, ex.getStatusCode());
+        }
+    }
+}
 
     /**
      * Proxy all /api/favorites/** requests to Favorite-Service.

@@ -1,0 +1,43 @@
+meta {
+  name: Get Discussion By Announcement
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/discussions?announcementId={{ANNOUNCEMENT_ID}}&recipientId={{RECIPIENT_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    if (res.body.id) {
+      console.log('✅ Discussion found');
+      console.log('💬 Discussion ID:', res.body.id);
+      console.log('📢 Announcement ID:', res.body.announcementId);
+      console.log('👤 Sender:', res.body.senderId);
+      console.log('👤 Recipient:', res.body.recipientId);
+      console.log('📅 Created at:', res.body.createdAt);
+      console.log('🔄 Updated at:', res.body.updatedAt);
+      bru.setEnvVar('DISCUSSION_ID', res.body.id);
+    } else {
+      console.log('ℹ️ Discussion not found - returning empty discussion');
+      console.log('💬 Discussion will be created when first message is sent');
+    }
+  } else if (res.status === 400) {
+    console.error('❌ Bad request - Missing announcementId or recipientId');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to get discussion:', res.status, res.body);
+  }
+}
+
