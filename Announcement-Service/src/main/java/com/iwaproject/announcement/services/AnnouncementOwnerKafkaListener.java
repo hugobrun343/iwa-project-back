@@ -47,9 +47,6 @@ public class AnnouncementOwnerKafkaListener {
             groupId = "announcement-service")
     public void consumeOwnerRequest(final String message) {
         try {
-            System.out.println("🔸 Received announcement owner request: "
-                    + message);
-
             // Parse JSON string to AnnouncementOwnerRequest
             AnnouncementOwnerRequest request =
                     objectMapper.readValue(message,
@@ -69,11 +66,7 @@ public class AnnouncementOwnerKafkaListener {
 
             kafkaTemplate.send(RESPONSE_TOPIC, response);
 
-            System.out.println("🔹 Sent announcement owner response: "
-                    + response);
         } catch (Exception e) {
-            System.err.println("❌ Error processing owner request: "
-                    + e.getMessage());
             e.printStackTrace();
         }
     }

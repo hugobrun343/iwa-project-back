@@ -364,8 +364,6 @@ public class AnnouncementService {
                     .hasUserAcceptedApplication(username, id)
                     .get(); // Blocks until response received or timeout
         } catch (Exception e) {
-            System.err.println("⚠️ Error verifying application: "
-                    + e.getMessage());
             return false;
         }
     }

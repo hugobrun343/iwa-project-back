@@ -47,9 +47,6 @@ public class ApplicationVerificationListener {
             groupId = "application-service")
     public void consumeVerificationRequest(final String message) {
         try {
-            System.out.println("🔸 Received verification request: "
-                    + message);
-
             // Parse JSON string to ApplicationVerificationRequest
             ApplicationVerificationRequest request =
                     objectMapper.readValue(message,
@@ -70,11 +67,7 @@ public class ApplicationVerificationListener {
                             accepted);
 
             kafkaTemplate.send(RESPONSE_TOPIC, response);
-
-            System.out.println("🔹 Sent verification response: " + response);
         } catch (Exception e) {
-            System.err.println("❌ Error processing verification request: "
-                    + e.getMessage());
             e.printStackTrace();
         }
     }

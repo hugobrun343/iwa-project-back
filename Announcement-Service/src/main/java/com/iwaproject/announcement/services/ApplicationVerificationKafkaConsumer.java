@@ -33,9 +33,6 @@ public class ApplicationVerificationKafkaConsumer {
             groupId = "announcement-service")
     public void consumeResponse(final String message) {
         try {
-            System.out.println("🔸 Received verification response: "
-                    + message);
-
             // Parse JSON string to ApplicationVerificationResponse
             ApplicationVerificationResponse response =
                     objectMapper.readValue(message,
@@ -43,8 +40,6 @@ public class ApplicationVerificationKafkaConsumer {
 
             kafkaService.handleResponse(response);
         } catch (Exception e) {
-            System.err.println("❌ Error processing verification response: "
-                    + e.getMessage());
             e.printStackTrace();
         }
     }

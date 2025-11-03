@@ -58,18 +58,12 @@ public class AnnouncementOwnerKafkaService {
 
         kafkaTemplate.send(REQUEST_TOPIC, request);
 
-        System.out.println("🔹 Sent announcement owner request: "
-                + request);
-
         // Optional: add timeout safeguard
         CompletableFuture.delayedExecutor(TIMEOUT_SECONDS,
                 TimeUnit.SECONDS).execute(() -> {
                     if (!future.isDone()) {
                         future.complete(null);
                         pendingRequests.remove(requestId);
-                        System.err.println(
-                                "⚠️ Announcement owner timeout for requestId "
-                                        + requestId);
                     }
                 });
 
@@ -87,12 +81,6 @@ public class AnnouncementOwnerKafkaService {
                 pendingRequests.remove(response.getRequestId());
         if (future != null) {
             future.complete(response.getOwnerUsername());
-            System.out.println("✅ Received owner response for "
-                    + response.getRequestId()
-                    + ": owner=" + response.getOwnerUsername());
-        } else {
-            System.err.println("⚠️ No pending request for "
-                    + response.getRequestId());
         }
     }
 }

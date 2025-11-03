@@ -33,9 +33,6 @@ public class AnnouncementOwnerKafkaConsumer {
             groupId = "application-service")
     public void consumeResponse(final String message) {
         try {
-            System.out.println("🔸 Received announcement owner response: "
-                    + message);
-
             // Parse JSON string to AnnouncementOwnerResponse
             AnnouncementOwnerResponse response =
                     objectMapper.readValue(message,
@@ -43,8 +40,6 @@ public class AnnouncementOwnerKafkaConsumer {
 
             kafkaService.handleResponse(response);
         } catch (Exception e) {
-            System.err.println("❌ Error processing owner response: "
-                    + e.getMessage());
             e.printStackTrace();
         }
     }

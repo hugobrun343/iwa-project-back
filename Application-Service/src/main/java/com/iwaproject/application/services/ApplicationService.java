@@ -269,8 +269,6 @@ public class ApplicationService {
                     .getAnnouncementOwner(announcementId)
                     .get(); // Blocks until response received or timeout
         } catch (Exception e) {
-            System.err.println("⚠️ Error getting announcement owner: "
-                    + e.getMessage());
             return null;
         }
     }

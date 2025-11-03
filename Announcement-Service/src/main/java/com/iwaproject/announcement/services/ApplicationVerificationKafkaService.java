@@ -61,18 +61,12 @@ public class ApplicationVerificationKafkaService {
 
         kafkaTemplate.send(REQUEST_TOPIC, request);
 
-        System.out.println("🔹 Sent verification request: "
-                + request);
-
         // Optional: add timeout safeguard
         CompletableFuture.delayedExecutor(TIMEOUT_SECONDS,
                 TimeUnit.SECONDS).execute(() -> {
                     if (!future.isDone()) {
                         future.complete(false);
                         pendingRequests.remove(requestId);
-                        System.err.println(
-                                "⚠️ Verification timeout for requestId "
-                                        + requestId);
                     }
                 });
 
@@ -90,12 +84,6 @@ public class ApplicationVerificationKafkaService {
                 pendingRequests.remove(response.getRequestId());
         if (future != null) {
             future.complete(response.isAccepted());
-            System.out.println("✅ Received response for "
-                    + response.getRequestId()
-                    + ": accepted=" + response.isAccepted());
-        } else {
-            System.err.println("⚠️ No pending request for "
-                    + response.getRequestId());
         }
     }
 }
