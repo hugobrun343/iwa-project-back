@@ -1,0 +1,54 @@
+meta {
+  name: Update Rating
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{GATEWAY_URL}}/api/ratings/{{RATING_ID}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+body:json {
+  {
+    "note": 4,
+    "commentaire": "Updated comment: Still good service!"
+  }
+}
+
+script:pre-request {
+  if (!{{RATING_ID}} || {{RATING_ID}} === '') {
+    console.error('❌ RATING_ID is required');
+    bru.setEnvVar('_skip', 'true');
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Rating updated successfully');
+    console.log('⭐ Rating ID:', res.body.id);
+    console.log('⭐ New Note:', res.body.note);
+    console.log('💬 New Comment:', res.body.commentaire);
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
+  } else if (res.status === 403) {
+    console.error('❌ Forbidden - You are not the author of this rating');
+    console.error('Response:', res.body);
+  } else if (res.status === 404) {
+    console.error('❌ Rating not found');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to update rating:', res.status, res.body);
+  }
+}
+

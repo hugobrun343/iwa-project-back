@@ -1,0 +1,36 @@
+meta {
+  name: Get Average Rating
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/ratings/recipient/{{RECIPIENT_ID}}/average
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:pre-request {
+  if (!{{RECIPIENT_ID}} || {{RECIPIENT_ID}} === '') {
+    console.error('❌ RECIPIENT_ID is required');
+    bru.setEnvVar('_skip', 'true');
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Average rating retrieved successfully');
+    console.log('⭐ Average:', res.body);
+    console.log('👤 Recipient:', {{RECIPIENT_ID}});
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to get average rating:', res.status, res.body);
+  }
+}
+

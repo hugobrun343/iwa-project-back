@@ -1,0 +1,46 @@
+meta {
+  name: Delete Rating
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{GATEWAY_URL}}/api/ratings/{{RATING_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+script:pre-request {
+  if (!{{RATING_ID}} || {{RATING_ID}} === '') {
+    console.error('❌ RATING_ID is required');
+    bru.setEnvVar('_skip', 'true');
+  }
+}
+
+script:post-response {
+  if (res.status === 204) {
+    console.log('✅ Rating deleted successfully');
+    console.log('⭐ Rating ID:', {{RATING_ID}});
+    bru.setEnvVar('RATING_ID', '');
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
+  } else if (res.status === 403) {
+    console.error('❌ Forbidden - You are not the author of this rating');
+    console.error('Response:', res.body);
+  } else if (res.status === 404) {
+    console.error('❌ Rating not found');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to delete rating:', res.status, res.body);
+  }
+}
+

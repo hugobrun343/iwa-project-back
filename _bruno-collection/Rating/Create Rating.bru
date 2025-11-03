@@ -1,0 +1,54 @@
+meta {
+  name: Create Rating
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/ratings/{{RECIPIENT_ID}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+body:json {
+  {
+    "note": 5,
+    "commentaire": "Excellent service! Highly recommended."
+  }
+}
+
+script:pre-request {
+  if (!{{RECIPIENT_ID}} || {{RECIPIENT_ID}} === '') {
+    console.error('❌ RECIPIENT_ID is required');
+    bru.setEnvVar('_skip', 'true');
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    console.log('✅ Rating created successfully');
+    console.log('⭐ Rating ID:', res.body.id);
+    console.log('👤 Author:', res.body.authorId);
+    console.log('👤 Recipient:', res.body.recipientId);
+    console.log('⭐ Note:', res.body.note);
+    console.log('💬 Comment:', res.body.commentaire);
+    console.log('📅 Date:', res.body.dateAvis);
+    bru.setEnvVar('RATING_ID', res.body.id);
+  } else if (res.status === 400) {
+    console.error('❌ Bad request:', res.body);
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to create rating:', res.status, res.body);
+  }
+}
+
