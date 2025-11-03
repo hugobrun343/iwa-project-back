@@ -68,6 +68,12 @@ public class ProxyController {
     private String chatServiceUrl;
 
     /**
+     * Rating service URL.
+     */
+    @Value("${RATING_SERVICE_URL}")
+    private String ratingServiceUrl;
+
+    /**
      * Proxy all /api/users/** requests to User-Service.
      *
      * @param request the HTTP servlet request
@@ -330,6 +336,22 @@ public class ProxyController {
         @RequestBody(required = false) final byte[] body,
         final HttpServletResponse response) throws IOException {
         return proxyRequest(request, body, chatServiceUrl, "Chat-Service");
+    }
+
+    /**
+     * Proxy all /api/ratings/** requests to Rating-Service.
+     *
+     * @param request the HTTP servlet request
+     * @param body the request body (if any)
+     * @param response the HTTP servlet response
+     * @return response from Rating-Service
+     */
+    @RequestMapping("/api/ratings/**")
+    public ResponseEntity<byte[]> proxyToRatingService(
+        final HttpServletRequest request,
+        @RequestBody(required = false) final byte[] body,
+        final HttpServletResponse response) throws IOException {
+        return proxyRequest(request, body, ratingServiceUrl, "Rating-Service");
     }
 
     /**

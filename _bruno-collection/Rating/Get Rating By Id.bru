@@ -1,0 +1,44 @@
+meta {
+  name: Get Rating By Id
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/ratings/{{RATING_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:pre-request {
+  if (!{{RATING_ID}} || {{RATING_ID}} === '') {
+    console.warn('⚠️ RATING_ID is empty. Skipping this request.');
+    console.warn('💡 Run "Create Rating" first.');
+    bru.setEnvVar('_skip', 'true');
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Rating retrieved successfully');
+    console.log('⭐ Rating ID:', res.body.id);
+    console.log('👤 Author:', res.body.authorId);
+    console.log('👤 Recipient:', res.body.recipientId);
+    console.log('⭐ Note:', res.body.note);
+    console.log('💬 Comment:', res.body.commentaire);
+    console.log('📅 Date:', res.body.dateAvis);
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
+  } else if (res.status === 404) {
+    console.error('❌ Rating not found');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to get rating:', res.status, res.body);
+  }
+}
+
