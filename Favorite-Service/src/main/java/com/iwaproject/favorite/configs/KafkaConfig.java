@@ -1,4 +1,4 @@
-package com.iwaproject.favorite.config;
+package com.iwaproject.favorite.configs;
 
 import java.util.HashMap;
 import java.util.Map;

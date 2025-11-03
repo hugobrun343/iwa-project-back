@@ -1,4 +1,4 @@
-package com.iwaproject.announcement.config;
+package com.iwaproject.application.configs;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

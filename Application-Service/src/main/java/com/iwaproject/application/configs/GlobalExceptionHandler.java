@@ -1,4 +1,4 @@
-package com.iwaproject.application.config;
+package com.iwaproject.application.configs;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

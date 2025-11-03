@@ -1,4 +1,4 @@
-package com.iwaproject.application.config;
+package com.iwaproject.application.configs;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

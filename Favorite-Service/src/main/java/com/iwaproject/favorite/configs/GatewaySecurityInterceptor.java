@@ -1,4 +1,4 @@
-package com.iwaproject.favorite.config;
+package com.iwaproject.favorite.configs;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
