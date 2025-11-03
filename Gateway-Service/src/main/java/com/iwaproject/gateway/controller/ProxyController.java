@@ -414,7 +414,6 @@ public class ProxyController {
                     bodyBytes, outHeaders, ex.getStatusCode());
         }
     }
-}
 
     /**
      * Proxy all /api/favorites/** requests to Favorite-Service.
