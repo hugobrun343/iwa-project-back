@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <!-- Console Appender -->
+    <!-- Console Appender for local development -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- Kafka Appender -->
+    <!-- Kafka Appender for centralized logging -->
     <appender name="KAFKA" class="com.github.danielwegener.logback.kafka.KafkaAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <customFields>{"service":"Chat-Service"}</customFields>
@@ -21,13 +21,18 @@
         <producerConfig>max.block.ms=0</producerConfig>
     </appender>
 
+    <!-- Root logger -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="KAFKA"/>
     </root>
 
+    <!-- Chat Service specific logging -->
     <logger name="com.iwaproject.chat" level="DEBUG"/>
+    
+    <!-- Reduce noise from Hibernate -->
     <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="INFO"/>
     
     <!-- Reduce Kafka noise to prevent log loops -->
     <logger name="org.apache.kafka" level="WARN"/>

@@ -5,6 +5,12 @@ on:
     workflows: ["Test"]
     types: [completed]
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Services to deploy (comma-separated or all): gateway, user, announcement, application, chat, favorite, payment, rating, all'
+        required: false
+        default: 'all'
 
 run-name: Build and Deploy - ${{ github.event.workflow_run.head_commit.message }}
 
@@ -14,10 +20,10 @@ env:
 jobs:
   check-tests-success:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Tests passed
-        run: echo "Tests workflow completed successfully"
+        run: echo "Tests workflow completed successfully or manually triggered"
 
   detect-changes:
     runs-on: ubuntu-latest
@@ -33,34 +39,68 @@ jobs:
       - name: Detect changed services
         id: changes
         run: |
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
-          echo "Changed files: $CHANGED_FILES"
-          
           declare -A SERVICES=(
-            ["Gateway-Service"]="gateway:homeguard",
-            ["Announcement-Service"]="announcement:homeguard-announcement",
-            ["Application-Service"]="application:homeguard-application",
-            ["Chat-Service"]="chat:homeguard-chat",
-            ["Favorite-Service"]="favorite:homeguard-favorite",
-            ["Keycloak-Service"]="keycloak:homeguard-keycloak",
-            ["Log-Service"]="log:homeguard-log",
-            ["Payment-Service"]="payment:homeguard-payment",
-            ["Rating-Service"]="rating:homeguard-rating",
-            ["User-Service"]="user:homeguard-user",
+            ["Gateway-Service"]="gateway:homeguard"
+            ["Announcement-Service"]="announcement:homeguard-announcement"
+            ["Application-Service"]="application:homeguard-application"
+            ["Chat-Service"]="chat:homeguard-chat"
+            ["Favorite-Service"]="favorite:homeguard-favorite"
+            ["Log-Service"]="log:homeguard-log"
+            ["Payment-Service"]="payment:homeguard-payment"
+            ["Rating-Service"]="rating:homeguard-rating"
+            ["User-Service"]="user:homeguard-user"
           )
           
           MATRIX='{"include":[]}'
           
-          for folder in "${!SERVICES[@]}"; do
-            if echo "$CHANGED_FILES" | grep -q "^$folder/"; then
-              IFS=':' read -r service dokku_app <<< "${SERVICES[$folder]}"
-              echo "✅ $folder changed - will deploy $service to $dokku_app"
-              
-              MATRIX=$(echo "$MATRIX" | jq --arg folder "$folder" --arg service "$service" --arg dokku_app "$dokku_app" '.include += [{"folder": $folder, "service": $service, "dokku-app": $dokku_app}]')
+          # Manual trigger - deploy selected services
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SERVICES_INPUT="${{ github.event.inputs.services }}"
+            echo "Manual trigger detected. Services requested: $SERVICES_INPUT"
+            
+            if [ "$SERVICES_INPUT" = "all" ]; then
+              echo "Deploying all services"
+              for folder in "${!SERVICES[@]}"; do
+                IFS=':' read -r service dokku_app <<< "${SERVICES[$folder]}"
+                echo "✅ $folder - will deploy $service to $dokku_app"
+                MATRIX=$(echo "$MATRIX" | jq --arg folder "$folder" --arg service "$service" --arg dokku_app "$dokku_app" '.include += [{"folder": $folder, "service": $service, "dokku-app": $dokku_app}]')
+              done
             else
-              echo "⏭️ $folder unchanged - skipping"
+              # Deploy specific services
+              IFS=',' read -ra REQUESTED <<< "$SERVICES_INPUT"
+              for req in "${REQUESTED[@]}"; do
+                case "$req" in
+                  gateway) folder="Gateway-Service" ;;
+                  announcement) folder="Announcement-Service" ;;
+                  application) folder="Application-Service" ;;
+                  chat) folder="Chat-Service" ;;
+                  favorite) folder="Favorite-Service" ;;
+                  log) folder="Log-Service" ;;
+                  payment) folder="Payment-Service" ;;
+                  rating) folder="Rating-Service" ;;
+                  user) folder="User-Service" ;;
+                  *) echo "⚠️ Unknown service: $req"; continue ;;
+                esac
+                IFS=':' read -r service dokku_app <<< "${SERVICES[$folder]}"
+                echo "✅ $folder - will deploy $service to $dokku_app"
+                MATRIX=$(echo "$MATRIX" | jq --arg folder "$folder" --arg service "$service" --arg dokku_app "$dokku_app" '.include += [{"folder": $folder, "service": $service, "dokku-app": $dokku_app}]')
+              done
             fi
-          done
+          else
+            # Automatic trigger - detect changes
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+            echo "Changed files: $CHANGED_FILES"
+            
+            for folder in "${!SERVICES[@]}"; do
+              if echo "$CHANGED_FILES" | grep -q "^$folder/"; then
+                IFS=':' read -r service dokku_app <<< "${SERVICES[$folder]}"
+                echo "✅ $folder changed - will deploy $service to $dokku_app"
+                MATRIX=$(echo "$MATRIX" | jq --arg folder "$folder" --arg service "$service" --arg dokku_app "$dokku_app" '.include += [{"folder": $folder, "service": $service, "dokku-app": $dokku_app}]')
+              else
+                echo "⏭️ $folder unchanged - skipping"
+              fi
+            done
+          fi
           
           echo "matrix<<EOF" >> $GITHUB_OUTPUT
           echo "$MATRIX" >> $GITHUB_OUTPUT
@@ -117,7 +157,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.folder }}
+          context: .
+          file: ./${{ matrix.folder }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

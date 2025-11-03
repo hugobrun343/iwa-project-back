@@ -1,0 +1,55 @@
+meta {
+  name: Get Messages
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/discussions/{{DISCUSSION_ID}}/messages?page=0&limit=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+script:pre-request {
+  if (!{{DISCUSSION_ID}} || {{DISCUSSION_ID}} === '') {
+    console.error('❌ DISCUSSION_ID is required');
+    console.error('💡 Run "Create Message" first to create a discussion.');
+    bru.setEnvVar('_skip', 'true');
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Messages retrieved successfully');
+    console.log('📋 Total messages:', res.body.totalElements);
+    console.log('📄 Current page:', res.body.number);
+    if (res.body.content && res.body.content.length > 0) {
+      console.log('💬 Messages:', res.body.content.length);
+      res.body.content.forEach((msg, index) => {
+        console.log(`  ${index + 1}. [${msg.authorId}]: ${msg.content}`);
+      });
+    } else {
+      console.log('💬 No messages in this discussion yet');
+    }
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
+  } else if (res.status === 404) {
+    console.error('❌ Discussion not found');
+    console.error('Response:', res.body);
+  } else if (res.status === 403) {
+    console.error('❌ You are not a participant in this discussion');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to get messages:', res.status, res.body);
+  }
+}
+

@@ -1,0 +1,60 @@
+meta {
+  name: Get Discussion By Id
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/discussions/{{DISCUSSION_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+script:pre-request {
+  if (!{{DISCUSSION_ID}} || {{DISCUSSION_ID}} === '') {
+    console.warn('⚠️ DISCUSSION_ID is empty. Skipping this request.');
+    console.warn('💡 Run "Get My Discussions" or "Get Discussion By Announcement" first.');
+    bru.setEnvVar('_skip', 'true');
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    if (res.body.id) {
+      console.log('✅ Discussion retrieved successfully');
+      console.log('💬 Discussion ID:', res.body.id);
+      console.log('📢 Announcement ID:', res.body.announcementId);
+      console.log('👤 Sender:', res.body.senderId);
+      console.log('👤 Recipient:', res.body.recipientId);
+      console.log('📅 Created at:', res.body.createdAt);
+      console.log('🔄 Updated at:', res.body.updatedAt);
+      // Update variables if needed
+      if (res.body.announcementId) {
+        bru.setEnvVar('ANNOUNCEMENT_ID', res.body.announcementId);
+      }
+      if (res.body.recipientId) {
+        bru.setEnvVar('RECIPIENT_ID', res.body.recipientId);
+      }
+    } else {
+      console.log('ℹ️ Discussion not found - returning empty discussion');
+      console.log('💬 Discussion will be created when first message is sent');
+    }
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
+  } else if (res.status === 404) {
+    console.error('❌ Discussion not found');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to get discussion:', res.status, res.body);
+  }
+}
+

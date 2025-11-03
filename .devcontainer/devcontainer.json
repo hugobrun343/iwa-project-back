@@ -1,0 +1,39 @@
+{
+	"name": "Java",
+	"image": "mcr.microsoft.com/devcontainers/java:1-21",
+
+	"features": {
+		"ghcr.io/devcontainers/features/java:1": {
+			"version": "none",
+			"installMaven": "true",
+			"mavenVersion": "3.8.6",
+			"installGradle": "false"
+		},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"version": "latest",
+			"dockerDashComposeVersion": "v2"
+		}
+	},
+
+	"customizations": {
+		"vscode": {
+			"settings": {},
+			"extensions": [
+				"streetsidesoftware.code-spell-checker"
+			]
+		}
+	},
+
+	"forwardPorts": [8080, 8085],
+
+	"portsAttributes": {
+		"8080": {
+			"label": "Keycloak",
+			"onAutoForward": "notify"
+		},
+		"8085": {
+			"label": "Gateway",
+			"onAutoForward": "notify"
+		}
+	}
+}
