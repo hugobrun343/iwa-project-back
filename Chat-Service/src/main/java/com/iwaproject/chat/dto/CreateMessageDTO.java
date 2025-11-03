@@ -16,5 +16,15 @@ public class CreateMessageDTO {
      * Message content.
      */
     private String content;
+
+    /**
+     * Announcement ID (optional - used to auto-create discussion if it doesn't exist).
+     */
+    private Long announcementId;
+
+    /**
+     * Recipient ID (optional - used to auto-create discussion if it doesn't exist).
+     */
+    private String recipientId;
 }
 

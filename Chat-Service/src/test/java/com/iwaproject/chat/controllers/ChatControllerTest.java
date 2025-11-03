@@ -1,7 +1,6 @@
 package com.iwaproject.chat.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iwaproject.chat.dto.CreateDiscussionDTO;
 import com.iwaproject.chat.dto.CreateMessageDTO;
 import com.iwaproject.chat.dto.DiscussionDTO;
 import com.iwaproject.chat.dto.MessageDTO;
@@ -23,8 +22,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -103,48 +105,47 @@ class ChatControllerTest {
     }
 
     /**
-     * Test POST /api/discussions creates new discussion.
+     * Test GET /api/discussions with query params returns discussion.
      */
     @Test
-    @DisplayName("POST /api/discussions creates new discussion")
-    void createDiscussion_ok() throws Exception {
+    @DisplayName("GET /api/discussions with query params returns discussion")
+    void getDiscussionByAnnouncement_ok() throws Exception {
         // Given
-        CreateDiscussionDTO createDTO = new CreateDiscussionDTO();
-        createDTO.setAnnouncementId(TEST_ANNOUNCEMENT_ID);
-        createDTO.setRecipientId(TEST_RECIPIENT_ID);
         DiscussionDTO discussion = createTestDiscussionDTO();
-
-        given(chatService.createOrGetDiscussion(
-                eq(TEST_USER_ID), eq(TEST_ANNOUNCEMENT_ID),
+        given(chatService.getDiscussionByAnnouncementAndParticipants(
+                eq(TEST_ANNOUNCEMENT_ID), eq(TEST_USER_ID),
                 eq(TEST_RECIPIENT_ID)))
                 .willReturn(discussion);
 
         // When / Then
-        mockMvc.perform(post("/api/discussions")
+        mockMvc.perform(get("/api/discussions")
                 .header(X_USERNAME_HEADER, TEST_USER_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(createDTO)))
-                .andExpect(status().isCreated())
+                .param("announcementId", TEST_ANNOUNCEMENT_ID.toString())
+                .param("recipientId", TEST_RECIPIENT_ID))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(TEST_DISCUSSION_ID));
     }
 
     /**
-     * Test POST /api/discussions with missing fields returns bad request.
+     * Test GET /api/discussions with query params returns empty discussion when not found.
      */
     @Test
-    @DisplayName("POST /api/discussions with missing fields returns bad request")
-    void createDiscussion_missingFields_badRequest() throws Exception {
+    @DisplayName("GET /api/discussions returns empty discussion when not found")
+    void getDiscussionByAnnouncement_notFound_returnsEmpty() throws Exception {
         // Given
-        CreateDiscussionDTO createDTO = new CreateDiscussionDTO();
-        createDTO.setAnnouncementId(null);
-        createDTO.setRecipientId(null);
+        DiscussionDTO emptyDiscussion = createEmptyDiscussionDTO();
+        given(chatService.getDiscussionByAnnouncementAndParticipants(
+                eq(TEST_ANNOUNCEMENT_ID), eq(TEST_USER_ID),
+                eq(TEST_RECIPIENT_ID)))
+                .willReturn(emptyDiscussion);
 
         // When / Then
-        mockMvc.perform(post("/api/discussions")
+        mockMvc.perform(get("/api/discussions")
                 .header(X_USERNAME_HEADER, TEST_USER_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(createDTO)))
-                .andExpect(status().isBadRequest());
+                .param("announcementId", TEST_ANNOUNCEMENT_ID.toString())
+                .param("recipientId", TEST_RECIPIENT_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isEmpty());
     }
 
     /**
@@ -164,6 +165,25 @@ class ChatControllerTest {
                 .header(X_USERNAME_HEADER, TEST_USER_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(TEST_DISCUSSION_ID));
+    }
+
+    /**
+     * Test GET /api/discussions/{id} returns empty discussion when not found.
+     */
+    @Test
+    @DisplayName("GET /api/discussions/{id} returns empty discussion when not found")
+    void getDiscussionById_notFound_returnsEmpty() throws Exception {
+        // Given
+        DiscussionDTO emptyDiscussion = createEmptyDiscussionDTO();
+        given(chatService.getDiscussionById(
+                eq(TEST_DISCUSSION_ID), eq(TEST_USER_ID)))
+                .willReturn(emptyDiscussion);
+
+        // When / Then
+        mockMvc.perform(get("/api/discussions/" + TEST_DISCUSSION_ID)
+                .header(X_USERNAME_HEADER, TEST_USER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isEmpty());
     }
 
     /**
@@ -205,7 +225,36 @@ class ChatControllerTest {
 
         given(chatService.createMessage(
                 eq(TEST_DISCUSSION_ID), eq(TEST_USER_ID),
-                eq("Test message content")))
+                eq("Test message content"), any(), any()))
+                .willReturn(message);
+
+        // When / Then
+        mockMvc.perform(post("/api/discussions/" + TEST_DISCUSSION_ID
+                + "/messages")
+                .header(X_USERNAME_HEADER, TEST_USER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(createDTO)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(TEST_MESSAGE_ID));
+    }
+
+    /**
+     * Test POST /api/discussions/{id}/messages creates discussion automatically when not exists.
+     */
+    @Test
+    @DisplayName("POST /api/discussions/{id}/messages creates discussion automatically when not exists")
+    void createMessage_autoCreatesDiscussion() throws Exception {
+        // Given
+        CreateMessageDTO createDTO = new CreateMessageDTO();
+        createDTO.setContent("Test message content");
+        createDTO.setAnnouncementId(TEST_ANNOUNCEMENT_ID);
+        createDTO.setRecipientId(TEST_RECIPIENT_ID);
+        MessageDTO message = createTestMessageDTO();
+
+        given(chatService.createMessage(
+                eq(TEST_DISCUSSION_ID), eq(TEST_USER_ID),
+                eq("Test message content"), eq(TEST_ANNOUNCEMENT_ID),
+                eq(TEST_RECIPIENT_ID)))
                 .willReturn(message);
 
         // When / Then
@@ -238,6 +287,38 @@ class ChatControllerTest {
     }
 
     /**
+     * Test DELETE /api/discussions/{id} deletes discussion.
+     */
+    @Test
+    @DisplayName("DELETE /api/discussions/{id} deletes discussion")
+    void deleteDiscussion_ok() throws Exception {
+        // Given
+        willDoNothing().given(chatService).deleteDiscussion(
+                eq(TEST_DISCUSSION_ID), eq(TEST_USER_ID));
+
+        // When / Then
+        mockMvc.perform(delete("/api/discussions/" + TEST_DISCUSSION_ID)
+                .header(X_USERNAME_HEADER, TEST_USER_ID))
+                .andExpect(status().isNoContent());
+    }
+
+    /**
+     * Test DELETE /api/discussions/{id} returns not found when discussion doesn't exist.
+     */
+    @Test
+    @DisplayName("DELETE /api/discussions/{id} returns not found when discussion doesn't exist")
+    void deleteDiscussion_notFound() throws Exception {
+        // Given
+        willDoNothing().given(chatService).deleteDiscussion(
+                eq(TEST_DISCUSSION_ID), eq(TEST_USER_ID));
+
+        // When / Then
+        mockMvc.perform(delete("/api/discussions/" + TEST_DISCUSSION_ID)
+                .header(X_USERNAME_HEADER, TEST_USER_ID))
+                .andExpect(status().isNoContent());
+    }
+
+    /**
      * Create test discussion DTO.
      *
      * @return test discussion DTO
@@ -265,6 +346,22 @@ class ChatControllerTest {
         dto.setAuthorId(TEST_USER_ID);
         dto.setContent("Test message content");
         dto.setCreatedAt(LocalDateTime.now());
+        return dto;
+    }
+
+    /**
+     * Create empty discussion DTO.
+     *
+     * @return empty discussion DTO
+     */
+    private DiscussionDTO createEmptyDiscussionDTO() {
+        DiscussionDTO dto = new DiscussionDTO();
+        dto.setId(null);
+        dto.setAnnouncementId(null);
+        dto.setSenderId(null);
+        dto.setRecipientId(null);
+        dto.setCreatedAt(null);
+        dto.setUpdatedAt(null);
         return dto;
     }
 }

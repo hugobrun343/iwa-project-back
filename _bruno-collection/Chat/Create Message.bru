@@ -20,7 +20,9 @@ headers {
 
 body:json {
   {
-    "content": "Hello! This is a test message from Bruno."
+    "content": "Hello! This is a test message from Bruno.",
+    "announcementId": {{ANNOUNCEMENT_ID}},
+    "recipientId": "{{RECIPIENT_ID}}"
   }
 }
 
@@ -28,13 +30,16 @@ script:post-response {
   if (res.status === 201) {
     console.log('✅ Message created successfully');
     console.log('💬 Message ID:', res.body.id);
+    console.log('💬 Discussion ID:', res.body.discussionId);
     console.log('📝 Content:', res.body.content);
     console.log('👤 Author:', res.body.authorId);
     console.log('📅 Created at:', res.body.createdAt);
-  } else if (res.status === 404) {
-    console.error('❌ Discussion not found');
-  } else if (res.status === 403) {
-    console.error('❌ You are not a participant in this discussion');
+    // Update DISCUSSION_ID if discussion was auto-created
+    if (res.body.discussionId) {
+      bru.setEnvVar('DISCUSSION_ID', res.body.discussionId);
+    }
+  } else if (res.status === 400) {
+    console.error('❌ Bad request - Missing announcementId or recipientId to create discussion');
   } else {
     console.error('❌ Failed to create message:', res.status, res.body);
   }

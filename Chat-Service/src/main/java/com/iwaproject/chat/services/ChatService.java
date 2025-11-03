@@ -125,27 +125,86 @@ public class ChatService {
 
     /**
      * Get discussion by ID (if user is participant).
+     * Returns empty discussion if not found.
      *
      * @param discussionId the discussion ID
      * @param userId the user ID
-     * @return discussion DTO
+     * @return discussion DTO (empty if not found)
      */
     public DiscussionDTO getDiscussionById(final Long discussionId,
             final String userId) {
         log.debug("Fetching discussion: {} for user: {}", discussionId, userId);
 
-        Discussion discussion = discussionRepository.findById(discussionId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Discussion not found: " + discussionId));
+        Optional<Discussion> discussionOpt = discussionRepository
+                .findById(discussionId);
+
+        if (discussionOpt.isEmpty()) {
+            log.debug("Discussion not found: {}, returning empty discussion",
+                    discussionId);
+            return createEmptyDiscussionDTO();
+        }
+
+        Discussion discussion = discussionOpt.get();
 
         // Verify user is participant
         if (!discussion.getSenderId().equals(userId)
                 && !discussion.getRecipientId().equals(userId)) {
-            throw new IllegalArgumentException(
-                    "User is not a participant in this discussion");
+            log.debug("User {} is not a participant in discussion {}",
+                    userId, discussionId);
+            return createEmptyDiscussionDTO();
         }
 
         return mapToDiscussionDTO(discussion);
+    }
+
+    /**
+     * Get or create discussion by announcement ID and participants.
+     * Returns empty discussion if not found (doesn't create it yet).
+     *
+     * @param announcementId the announcement ID
+     * @param userId the user ID (current user)
+     * @param recipientId the recipient ID
+     * @return discussion DTO (empty if not found)
+     */
+    public DiscussionDTO getDiscussionByAnnouncementAndParticipants(
+            final Long announcementId, final String userId,
+            final String recipientId) {
+        log.debug("Fetching discussion for announcement: {}, user: {}, "
+                + "recipient: {}", announcementId, userId, recipientId);
+
+        Optional<Discussion> existing = discussionRepository
+                .findByAnnouncementIdAndParticipants(announcementId,
+                        userId, recipientId);
+
+        if (existing.isPresent()) {
+            Discussion discussion = existing.get();
+            // Verify user is participant
+            if (!discussion.getSenderId().equals(userId)
+                    && !discussion.getRecipientId().equals(userId)) {
+                log.debug("User {} is not a participant", userId);
+                return createEmptyDiscussionDTO();
+            }
+            return mapToDiscussionDTO(discussion);
+        }
+
+        log.debug("Discussion not found, returning empty discussion");
+        return createEmptyDiscussionDTO();
+    }
+
+    /**
+     * Create an empty discussion DTO.
+     *
+     * @return empty discussion DTO
+     */
+    private DiscussionDTO createEmptyDiscussionDTO() {
+        DiscussionDTO dto = new DiscussionDTO();
+        dto.setId(null);
+        dto.setAnnouncementId(null);
+        dto.setSenderId(null);
+        dto.setRecipientId(null);
+        dto.setCreatedAt(null);
+        dto.setUpdatedAt(null);
+        return dto;
     }
 
     /**
@@ -178,28 +237,60 @@ public class ChatService {
 
     /**
      * Create a new message in a discussion.
+     * Creates the discussion automatically if it doesn't exist
+     * (requires announcementId and recipientId in the request).
      *
-     * @param discussionId the discussion ID
+     * @param discussionId the discussion ID (can be null if creating new discussion)
      * @param authorId the author ID (must match userId from token)
      * @param content the message content
+     * @param announcementId the announcement ID (required if discussionId is null)
+     * @param recipientId the recipient ID (required if discussionId is null)
      * @return message DTO
      */
     @Transactional
     public MessageDTO createMessage(final Long discussionId,
-            final String authorId, final String content) {
+            final String authorId, final String content,
+            final Long announcementId, final String recipientId) {
         log.info("Creating message in discussion: {} by author: {}",
                 discussionId, authorId);
 
-        // Verify user is participant
-        if (!discussionRepository.isParticipant(discussionId, authorId)) {
-            throw new IllegalArgumentException(
-                    "User is not a participant in this discussion");
-        }
+        Discussion discussion;
 
-        // Get discussion
-        Discussion discussion = discussionRepository.findById(discussionId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Discussion not found: " + discussionId));
+        // If discussionId is provided, try to get existing discussion
+        if (discussionId != null) {
+            Optional<Discussion> discussionOpt = discussionRepository
+                    .findById(discussionId);
+
+            if (discussionOpt.isPresent()) {
+                discussion = discussionOpt.get();
+                // Verify user is participant
+                if (!discussion.getSenderId().equals(authorId)
+                        && !discussion.getRecipientId().equals(authorId)) {
+                    throw new IllegalArgumentException(
+                            "User is not a participant in this discussion");
+                }
+            } else {
+                // Discussion doesn't exist, need to create it
+                if (announcementId == null || recipientId == null
+                        || recipientId.isBlank()) {
+                    throw new IllegalArgumentException(
+                            "Discussion not found and missing announcementId "
+                            + "or recipientId to create it");
+                }
+                discussion = createOrGetDiscussionInternal(authorId,
+                        announcementId, recipientId);
+            }
+        } else {
+            // No discussionId provided, create new discussion
+            if (announcementId == null || recipientId == null
+                    || recipientId.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Missing announcementId or recipientId to create "
+                        + "discussion");
+            }
+            discussion = createOrGetDiscussionInternal(authorId,
+                    announcementId, recipientId);
+        }
 
         // Create message
         Message message = new Message();
@@ -215,9 +306,78 @@ public class ChatService {
         discussionRepository.save(discussion);
 
         log.info("Created message: {} in discussion: {}", saved.getId(),
-                discussionId);
+                discussion.getId());
 
         return mapToMessageDTO(saved);
+    }
+
+    /**
+     * Create or get existing discussion (internal method without Kafka verification).
+     *
+     * @param senderId the sender ID (current user)
+     * @param announcementId the announcement ID
+     * @param recipientId the recipient ID
+     * @return discussion entity
+     */
+    private Discussion createOrGetDiscussionInternal(final String senderId,
+            final Long announcementId, final String recipientId) {
+        log.info("Creating or getting discussion for sender: {}, "
+                + "recipient: {}, announcement: {}",
+                senderId, recipientId, announcementId);
+
+        // Check if discussion already exists
+        Optional<Discussion> existing = discussionRepository
+                .findByAnnouncementIdAndParticipants(announcementId,
+                        senderId, recipientId);
+
+        if (existing.isPresent()) {
+            log.debug("Discussion already exists: {}", existing.get().getId());
+            return existing.get();
+        }
+
+        // Create new discussion
+        Discussion discussion = new Discussion();
+        discussion.setAnnouncementId(announcementId);
+        discussion.setSenderId(senderId);
+        discussion.setRecipientId(recipientId);
+        discussion.setCreatedAt(LocalDateTime.now());
+        discussion.setUpdatedAt(LocalDateTime.now());
+
+        Discussion saved = discussionRepository.save(discussion);
+        log.info("Created new discussion: {}", saved.getId());
+
+        return saved;
+    }
+
+    /**
+     * Delete a discussion by ID.
+     *
+     * @param discussionId the discussion ID
+     * @param userId the user ID (must be participant)
+     */
+    @Transactional
+    public void deleteDiscussion(final Long discussionId,
+            final String userId) {
+        log.info("Deleting discussion: {} by user: {}", discussionId, userId);
+
+        Discussion discussion = discussionRepository.findById(discussionId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Discussion not found: " + discussionId));
+
+        // Verify user is participant
+        if (!discussion.getSenderId().equals(userId)
+                && !discussion.getRecipientId().equals(userId)) {
+            throw new IllegalArgumentException(
+                    "User is not a participant in this discussion");
+        }
+
+        // Delete all messages first (cascade might not be configured)
+        messageRepository.deleteByDiscussionId(discussionId);
+
+        // Delete discussion
+        discussionRepository.delete(discussion);
+
+        log.info("Deleted discussion: {}", discussionId);
     }
 
     /**

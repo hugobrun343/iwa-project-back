@@ -1,13 +1,17 @@
 meta {
-  name: Create Discussion
+  name: Get Discussion By Announcement
   type: http
   seq: 2
 }
 
-post {
+get {
   url: {{GATEWAY_URL}}/api/discussions
-  body: json
+  body: none
   auth: bearer
+  params {
+    announcementId: {{ANNOUNCEMENT_ID}}
+    recipientId: {{RECIPIENT_ID}}
+  }
 }
 
 auth:bearer {
@@ -18,27 +22,23 @@ headers {
   X-Username: {{USER_ID}}
 }
 
-body:json {
-  {
-    "announcementId": 1,
-    "recipientId": "recipient-user-id"
-  }
-}
-
 script:post-response {
-  if (res.status === 201) {
-    console.log('✅ Discussion created successfully');
-    console.log('💬 Discussion ID:', res.body.id);
-    console.log('📢 Announcement ID:', res.body.announcementId);
-    console.log('👤 Sender:', res.body.senderId);
-    console.log('👤 Recipient:', res.body.recipientId);
-    bru.setEnvVar('DISCUSSION_ID', res.body.id);
-  } else if (res.status === 200) {
-    console.log('ℹ️ Discussion already exists');
-    console.log('💬 Discussion ID:', res.body.id);
-    bru.setEnvVar('DISCUSSION_ID', res.body.id);
+  if (res.status === 200) {
+    if (res.body.id) {
+      console.log('✅ Discussion found');
+      console.log('💬 Discussion ID:', res.body.id);
+      console.log('📢 Announcement ID:', res.body.announcementId);
+      console.log('👤 Sender:', res.body.senderId);
+      console.log('👤 Recipient:', res.body.recipientId);
+      console.log('📅 Created at:', res.body.createdAt);
+      console.log('🔄 Updated at:', res.body.updatedAt);
+      bru.setEnvVar('DISCUSSION_ID', res.body.id);
+    } else {
+      console.log('ℹ️ Discussion not found - returning empty discussion');
+      console.log('💬 Discussion will be created when first message is sent');
+    }
   } else {
-    console.error('❌ Failed to create discussion:', res.status, res.body);
+    console.error('❌ Failed to get discussion:', res.status, res.body);
   }
 }
 

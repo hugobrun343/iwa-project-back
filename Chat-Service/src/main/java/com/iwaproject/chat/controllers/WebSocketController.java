@@ -47,7 +47,8 @@ public class WebSocketController {
      * Handle message sent via WebSocket.
      *
      * @param discussionId the discussion ID
-     * @param messagePayload the message payload (contains "content" and "authorId")
+     * @param messagePayload the message payload (contains "content", "authorId",
+     *                      and optionally "announcementId" and "recipientId")
      * @param headerAccessor header accessor for session info
      * @return message DTO to broadcast
      */
@@ -60,6 +61,10 @@ public class WebSocketController {
 
         String authorId = (String) messagePayload.get("authorId");
         String content = (String) messagePayload.get("content");
+        Long announcementId = messagePayload.get("announcementId") != null
+                ? ((Number) messagePayload.get("announcementId")).longValue()
+                : null;
+        String recipientId = (String) messagePayload.get("recipientId");
 
         log.info("WebSocket message received - Discussion: {}, Author: {}",
                 discussionId, authorId);
@@ -69,8 +74,18 @@ public class WebSocketController {
                 + ", Author: " + authorId);
 
         try {
-            // Verify user is participant
-            if (!discussionRepository.isParticipant(discussionId, authorId)) {
+            // If discussionId is null or invalid, verify we have required info
+            if (discussionId == null
+                    && (announcementId == null || recipientId == null)) {
+                log.warn("Missing discussionId or announcementId/recipientId");
+                kafkaLogService.warn(LOGGER_NAME,
+                        "Missing required fields for message creation");
+                return null;
+            }
+
+            // Verify user is participant if discussion exists
+            if (discussionId != null
+                    && !discussionRepository.isParticipant(discussionId, authorId)) {
                 log.warn("User {} is not a participant in discussion {}",
                         authorId, discussionId);
                 kafkaLogService.warn(LOGGER_NAME,
@@ -78,9 +93,9 @@ public class WebSocketController {
                 return null;
             }
 
-            // Create message via service (this will also update discussion)
+            // Create message via service (this will also update/create discussion)
             MessageDTO messageDTO = chatService.createMessage(
-                    discussionId, authorId, content);
+                    discussionId, authorId, content, announcementId, recipientId);
 
             log.info("Message created via WebSocket: {}", messageDTO.getId());
             return messageDTO;

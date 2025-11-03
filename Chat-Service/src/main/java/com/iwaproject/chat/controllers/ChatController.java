@@ -1,6 +1,5 @@
 package com.iwaproject.chat.controllers;
 
-import com.iwaproject.chat.dto.CreateDiscussionDTO;
 import com.iwaproject.chat.dto.CreateMessageDTO;
 import com.iwaproject.chat.dto.DiscussionDTO;
 import com.iwaproject.chat.dto.MessageDTO;
@@ -11,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -79,57 +79,44 @@ public class ChatController {
     }
 
     /**
-     * Create or get existing discussion.
+     * Get discussion by announcement ID and participants.
+     * Returns empty discussion if not found.
      *
-     * @param userId the user ID (from token, will be sender)
-     * @param createDTO the creation DTO
-     * @return discussion DTO
+     * @param userId the user ID (from token)
+     * @param announcementId the announcement ID
+     * @param recipientId the recipient ID
+     * @return discussion DTO (empty if not found)
      */
-    @PostMapping("/discussions")
-    public ResponseEntity<DiscussionDTO> createDiscussion(
+    @GetMapping("/discussions")
+    public ResponseEntity<DiscussionDTO> getDiscussionByAnnouncement(
             @RequestHeader("X-Username") final String userId,
-            @RequestBody final CreateDiscussionDTO createDTO) {
+            @RequestParam("announcementId") final Long announcementId,
+            @RequestParam("recipientId") final String recipientId) {
 
         kafkaLogService.info(LOGGER_NAME,
-                "POST /discussions - User: " + userId
-                + ", announcementId: " + createDTO.getAnnouncementId()
-                + ", recipientId: " + createDTO.getRecipientId());
+                "GET /discussions - User: " + userId
+                + ", announcementId: " + announcementId
+                + ", recipientId: " + recipientId);
 
         try {
-            // Validate required fields
-            if (createDTO.getAnnouncementId() == null
-                    || createDTO.getRecipientId() == null
-                    || createDTO.getRecipientId().isBlank()) {
-                kafkaLogService.warn(LOGGER_NAME,
-                        "Missing required fields: announcementId or recipientId");
-                return ResponseEntity.badRequest().build();
-            }
-
-            DiscussionDTO discussion = chatService.createOrGetDiscussion(
-                    userId,
-                    createDTO.getAnnouncementId(),
-                    createDTO.getRecipientId());
-
-            return ResponseEntity.created(
-                            URI.create("/api/discussions/" + discussion.getId()))
-                    .body(discussion);
-        } catch (IllegalArgumentException e) {
-            kafkaLogService.warn(LOGGER_NAME,
-                    "Invalid request: " + e.getMessage());
-            return ResponseEntity.badRequest().build();
+            DiscussionDTO discussion =
+                    chatService.getDiscussionByAnnouncementAndParticipants(
+                            announcementId, userId, recipientId);
+            return ResponseEntity.ok(discussion);
         } catch (Exception e) {
             kafkaLogService.error(LOGGER_NAME,
-                    "Failed to create discussion: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
+                    "Failed to get discussion: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
     /**
      * Get discussion details by ID.
+     * Returns empty discussion if not found or user is not participant.
      *
      * @param id the discussion ID
      * @param userId the user ID (from token)
-     * @return discussion DTO
+     * @return discussion DTO (empty if not found)
      */
     @GetMapping("/discussions/{id}")
     public ResponseEntity<DiscussionDTO> getDiscussionById(
@@ -142,14 +129,6 @@ public class ChatController {
         try {
             DiscussionDTO discussion = chatService.getDiscussionById(id, userId);
             return ResponseEntity.ok(discussion);
-        } catch (IllegalArgumentException e) {
-            kafkaLogService.warn(LOGGER_NAME,
-                    "Discussion not found or user not participant: "
-                    + e.getMessage());
-            if (e.getMessage().contains("not found")) {
-                return ResponseEntity.notFound().build();
-            }
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (Exception e) {
             kafkaLogService.error(LOGGER_NAME,
                     "Failed to get discussion: " + e.getMessage());
@@ -200,8 +179,10 @@ public class ChatController {
 
     /**
      * Send a message in a discussion.
+     * Creates the discussion automatically if it doesn't exist
+     * (requires announcementId and recipientId in the request body).
      *
-     * @param id the discussion ID
+     * @param id the discussion ID (can be null if creating new discussion)
      * @param userId the user ID (from token, must match author)
      * @param createDTO the message creation DTO
      * @return message DTO
@@ -225,12 +206,44 @@ public class ChatController {
             }
 
             MessageDTO message = chatService.createMessage(
-                    id, userId, createDTO.getContent());
+                    id, userId, createDTO.getContent(),
+                    createDTO.getAnnouncementId(),
+                    createDTO.getRecipientId());
 
             return ResponseEntity.created(
-                            URI.create("/api/discussions/" + id
+                            URI.create("/api/discussions/"
+                                    + message.getDiscussionId()
                                     + "/messages/" + message.getId()))
                     .body(message);
+        } catch (IllegalArgumentException e) {
+            kafkaLogService.warn(LOGGER_NAME,
+                    "Invalid request: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            kafkaLogService.error(LOGGER_NAME,
+                    "Failed to create message: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Delete a discussion by ID.
+     *
+     * @param id the discussion ID
+     * @param userId the user ID (from token, must be participant)
+     * @return no content if successful
+     */
+    @DeleteMapping("/discussions/{id}")
+    public ResponseEntity<Void> deleteDiscussion(
+            @PathVariable("id") final Long id,
+            @RequestHeader("X-Username") final String userId) {
+
+        kafkaLogService.info(LOGGER_NAME,
+                "DELETE /discussions/" + id + " - User: " + userId);
+
+        try {
+            chatService.deleteDiscussion(id, userId);
+            return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             kafkaLogService.warn(LOGGER_NAME,
                     "Invalid request: " + e.getMessage());
@@ -240,7 +253,7 @@ public class ChatController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (Exception e) {
             kafkaLogService.error(LOGGER_NAME,
-                    "Failed to create message: " + e.getMessage());
+                    "Failed to delete discussion: " + e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
