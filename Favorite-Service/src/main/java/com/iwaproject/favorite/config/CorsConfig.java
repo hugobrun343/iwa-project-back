@@ -1,4 +1,4 @@
-package com.iwaproject.favorite.configs;
+package com.iwaproject.favorite.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

@@ -1,4 +1,4 @@
-package com.iwaproject.chat.config;
+package com.iwaproject.favorite.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Global exception handler for Chat Service.
+ * Global exception handler for Favorite Service.
  * Handles all uncaught exceptions and returns appropriate HTTP responses.
  */
 @Slf4j
@@ -81,6 +81,48 @@ public class GlobalExceptionHandler {
         errorResponse.put("error", "Not Found");
         errorResponse.put("message",
                 "Resource not found: " + ex.getResourcePath());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(errorResponse);
+    }
+
+    /**
+     * Handle illegal state exceptions (e.g., favorite already exists).
+     *
+     * @param ex the exception
+     * @return error response
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalState(
+            final IllegalStateException ex) {
+        log.warn("Illegal state: {}", ex.getMessage());
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("timestamp", LocalDateTime.now());
+        errorResponse.put("status", HttpStatus.CONFLICT.value());
+        errorResponse.put("error", "Conflict");
+        errorResponse.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorResponse);
+    }
+
+    /**
+     * Handle illegal argument exceptions (e.g., favorite not found).
+     *
+     * @param ex the exception
+     * @return error response
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(
+            final IllegalArgumentException ex) {
+        log.warn("Illegal argument: {}", ex.getMessage());
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("timestamp", LocalDateTime.now());
+        errorResponse.put("status", HttpStatus.NOT_FOUND.value());
+        errorResponse.put("error", "Not Found");
+        errorResponse.put("message", ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(errorResponse);

@@ -1,4 +1,4 @@
-package com.iwaproject.announcement.configs;
+package com.iwaproject.announcement.config;
 
 import com.iwaproject.announcement.entities.CareType;
 import com.iwaproject.announcement.repositories.CareTypeRepository;

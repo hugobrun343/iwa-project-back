@@ -1,4 +1,4 @@
-package com.iwaproject.chat.config;
+package com.iwaproject.payment.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Global exception handler for Chat Service.
+ * Global exception handler for Payment Service.
  * Handles all uncaught exceptions and returns appropriate HTTP responses.
  */
 @Slf4j

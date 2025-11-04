@@ -29,13 +29,13 @@ script:pre-request {
 script:post-response {
   if (res.status === 200) {
     if (res.body.id) {
-      console.log('✅ Discussion retrieved successfully');
-      console.log('💬 Discussion ID:', res.body.id);
-      console.log('📢 Announcement ID:', res.body.announcementId);
-      console.log('👤 Sender:', res.body.senderId);
-      console.log('👤 Recipient:', res.body.recipientId);
-      console.log('📅 Created at:', res.body.createdAt);
-      console.log('🔄 Updated at:', res.body.updatedAt);
+    console.log('✅ Discussion retrieved successfully');
+    console.log('💬 Discussion ID:', res.body.id);
+    console.log('📢 Announcement ID:', res.body.announcementId);
+    console.log('👤 Sender:', res.body.senderId);
+    console.log('👤 Recipient:', res.body.recipientId);
+    console.log('📅 Created at:', res.body.createdAt);
+    console.log('🔄 Updated at:', res.body.updatedAt);
       // Update variables if needed
       if (res.body.announcementId) {
         bru.setEnvVar('ANNOUNCEMENT_ID', res.body.announcementId);

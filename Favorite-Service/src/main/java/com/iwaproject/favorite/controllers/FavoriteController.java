@@ -47,11 +47,6 @@ public class FavoriteController {
     private static final String LOGGER_NAME = "FavoriteController";
 
     /**
-     * HTTP status code for conflict.
-     */
-    private static final int HTTP_STATUS_CONFLICT = 409;
-
-    /**
      * Get all favorites for the current guardian.
      *
      * @param username the username from header
@@ -64,15 +59,9 @@ public class FavoriteController {
         kafkaLogService.info(LOGGER_NAME,
                 "GET /api/favorites - User: " + username);
 
-        try {
-            List<FavoriteDTO> favorites =
-                    favoriteService.getFavoritesByGuardian(username);
-            return ResponseEntity.ok(favorites);
-        } catch (Exception e) {
-            kafkaLogService.error(LOGGER_NAME,
-                    "Failed to get favorites: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
+        List<FavoriteDTO> favorites =
+                favoriteService.getFavoritesByGuardian(username);
+        return ResponseEntity.ok(favorites);
     }
 
     /**
@@ -91,15 +80,9 @@ public class FavoriteController {
                 "GET /api/favorites/check - User: " + username
                         + ", Announcement: " + announcementId);
 
-        try {
-            boolean isFavorite =
-                    favoriteService.isFavorite(username, announcementId);
-            return ResponseEntity.ok(Map.of("isFavorite", isFavorite));
-        } catch (Exception e) {
-            kafkaLogService.error(LOGGER_NAME,
-                    "Failed to check favorite: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
+        boolean isFavorite =
+                favoriteService.isFavorite(username, announcementId);
+        return ResponseEntity.ok(Map.of("isFavorite", isFavorite));
     }
 
     /**
@@ -118,21 +101,11 @@ public class FavoriteController {
                 "POST /api/favorites - User: " + username
                         + ", Announcement: " + createDTO.getAnnouncementId());
 
-        try {
-            FavoriteDTO favorite =
-                    favoriteService.addFavorite(username, createDTO);
-            return ResponseEntity.created(
-                            URI.create("/api/favorites/" + favorite.getId()))
-                    .body(favorite);
-        } catch (IllegalStateException e) {
-            kafkaLogService.warn(LOGGER_NAME,
-                    "Favorite already exists: " + e.getMessage());
-            return ResponseEntity.status(HTTP_STATUS_CONFLICT).build();
-        } catch (Exception e) {
-            kafkaLogService.error(LOGGER_NAME,
-                    "Failed to add favorite: " + e.getMessage());
-            return ResponseEntity.badRequest().build();
-        }
+        FavoriteDTO favorite =
+                favoriteService.addFavorite(username, createDTO);
+        return ResponseEntity.created(
+                        URI.create("/api/favorites/" + favorite.getId()))
+                .body(favorite);
     }
 
     /**
@@ -151,17 +124,7 @@ public class FavoriteController {
                 "DELETE /api/favorites/" + announcementId
                         + " - User: " + username);
 
-        try {
-            favoriteService.removeFavorite(username, announcementId);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            kafkaLogService.warn(LOGGER_NAME,
-                    "Favorite not found: " + e.getMessage());
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            kafkaLogService.error(LOGGER_NAME,
-                    "Failed to remove favorite: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
+        favoriteService.removeFavorite(username, announcementId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,4 +1,4 @@
-package com.iwaproject.log.config;
+package com.iwaproject.application.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * CORS configuration for Log Service.
+ * CORS configuration for Application Service.
  * Only allows requests from the Gateway.
  */
 @Configuration
@@ -63,4 +63,3 @@ public class CorsConfig {
         return source;
     }
 }
-

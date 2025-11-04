@@ -1,4 +1,4 @@
-package com.iwaproject.favorite.configs;
+package com.iwaproject.announcement.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
@@ -6,7 +6,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web configuration for Favorite Service.
+ * Web configuration for Announcement Service.
  */
 @Configuration
 @RequiredArgsConstructor
