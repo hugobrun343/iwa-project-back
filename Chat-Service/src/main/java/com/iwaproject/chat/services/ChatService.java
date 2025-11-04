@@ -263,12 +263,12 @@ public class ChatService {
 
             if (discussionOpt.isPresent()) {
                 discussion = discussionOpt.get();
-        // Verify user is participant
+                // Verify user is participant
                 if (!discussion.getSenderId().equals(authorId)
                         && !discussion.getRecipientId().equals(authorId)) {
-            throw new IllegalArgumentException(
-                    "User is not a participant in this discussion");
-        }
+                    throw new IllegalArgumentException(
+                            "User is not a participant in this discussion");
+                }
             } else {
                 // Discussion doesn't exist, need to create it
                 if (announcementId == null || recipientId == null
