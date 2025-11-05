@@ -88,7 +88,10 @@ public class ServiceRouter {
         "/api/discussions/**",
         "/api/me/discussions",
         "/api/ratings/**",
-        "/api/payments/**"
+        "/api/payments/**",
+        // SockJS HTTP fallback requests (for WebSocket proxy)
+        "/ws/info",
+        "/ws/**"
     })
     public ResponseEntity<byte[]> routeRequest(
             final HttpServletRequest request,
@@ -134,6 +137,9 @@ public class ServiceRouter {
         } else if (path.startsWith("/api/payments/") 
                 || path.equals("/api/payments")) {
             return "payments";
+        } else if (path.startsWith("/ws")) {
+            // SockJS HTTP fallback requests go to Chat-Service
+            return "discussions";
         }
         return null;
     }

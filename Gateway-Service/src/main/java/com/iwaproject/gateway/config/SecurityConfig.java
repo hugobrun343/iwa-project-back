@@ -54,6 +54,9 @@ public class SecurityConfig {
                     "/health",
                     "/actuator/health",
                     "/test",
+                    // WebSocket and SockJS endpoints (HTTP fallback)
+                    "/ws",
+                    "/ws/**",
                     // Swagger UI & OpenAPI
                     "/v3/api-docs",
                     "/v3/api-docs/**",
