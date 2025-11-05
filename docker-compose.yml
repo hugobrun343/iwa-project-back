@@ -96,7 +96,9 @@ services:
       - iwa-network
 
   kafka:
-    image: apache/kafka:4.1.0
+    build:
+      context: .
+      dockerfile: ./Kafka-Service/Dockerfile
     container_name: kafka
     ports:
       - "9092:9092"
@@ -132,7 +134,9 @@ services:
       - iwa-network
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    build:
+      context: .
+      dockerfile: ./Elasticsearch-Service/Dockerfile
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
@@ -225,7 +229,9 @@ services:
 # region Services
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    build:
+      context: .
+      dockerfile: ./Keycloak-Service/Dockerfile
     container_name: keycloak-service
     environment:
       KEYCLOAK_ADMIN: admin
