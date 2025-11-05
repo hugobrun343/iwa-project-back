@@ -1,4 +1,4 @@
-FROM apache/kafka:latest
+FROM apache/kafka:4.1.0
 
 # Use the default Kafka entrypoint
 # The image already has all necessary configuration

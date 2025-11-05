@@ -1,4 +1,4 @@
-FROM docker.elastic.co/elasticsearch/elasticsearch:latest
+FROM docker.elastic.co/elasticsearch/elasticsearch:8.15.3
 
 # Use the default Elasticsearch entrypoint
 # The image already has all necessary configuration
