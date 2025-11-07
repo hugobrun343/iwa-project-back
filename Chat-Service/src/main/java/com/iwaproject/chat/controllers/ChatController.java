@@ -178,11 +178,66 @@ public class ChatController {
     }
 
     /**
+     * Send a message without specifying a discussion ID.
+     * Creates the discussion automatically based on announcementId and recipientId.
+     * This endpoint is useful for creating the first message in a new discussion.
+     *
+     * @param userId the user ID (from token, must match author)
+     * @param createDTO the message creation DTO (must include announcementId and recipientId)
+     * @return message DTO
+     */
+    @PostMapping("/messages")
+    public ResponseEntity<MessageDTO> createMessageWithoutDiscussion(
+            @RequestHeader("X-Username") final String userId,
+            @RequestBody final CreateMessageDTO createDTO) {
+
+        kafkaLogService.info(LOGGER_NAME,
+                "POST /messages - User: " + userId);
+
+        try {
+            // Validate required fields
+            if (createDTO.getContent() == null
+                    || createDTO.getContent().isBlank()) {
+                kafkaLogService.warn(LOGGER_NAME,
+                        "Missing required field: content");
+                return ResponseEntity.badRequest().build();
+            }
+
+            if (createDTO.getAnnouncementId() == null
+                    || createDTO.getRecipientId() == null
+                    || createDTO.getRecipientId().isBlank()) {
+                kafkaLogService.warn(LOGGER_NAME,
+                        "Missing required fields: announcementId or recipientId");
+                return ResponseEntity.badRequest().build();
+            }
+
+            MessageDTO message = chatService.createMessage(
+                    null, userId, createDTO.getContent(),
+                    createDTO.getAnnouncementId(),
+                    createDTO.getRecipientId());
+
+            return ResponseEntity.created(
+                            URI.create("/api/discussions/"
+                                    + message.getDiscussionId()
+                                    + "/messages/" + message.getId()))
+                    .body(message);
+        } catch (IllegalArgumentException e) {
+            kafkaLogService.warn(LOGGER_NAME,
+                    "Invalid request: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            kafkaLogService.error(LOGGER_NAME,
+                    "Failed to create message: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
      * Send a message in a discussion.
      * Creates the discussion automatically if it doesn't exist
      * (requires announcementId and recipientId in the request body).
      *
-     * @param id the discussion ID (can be null if creating new discussion)
+     * @param id the discussion ID
      * @param userId the user ID (from token, must match author)
      * @param createDTO the message creation DTO
      * @return message DTO
