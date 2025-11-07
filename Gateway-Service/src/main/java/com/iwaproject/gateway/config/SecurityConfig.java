@@ -3,58 +3,44 @@ package com.iwaproject.gateway.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.
-        EnableWebSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint;
 
 /**
- * Security configuration for the Gateway.
+ * Reactive Security configuration for Spring Cloud Gateway.
  * Validates JWT tokens from Keycloak and protects routes.
  * Only active in non-test profiles.
  */
 @Configuration
-@EnableWebSecurity
+@EnableWebFluxSecurity
 @Profile("!test")
 public class SecurityConfig {
 
     /**
-     * Custom authentication entry point.
-     */
-    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
-
-    /**
-     * Constructor.
+     * Configure reactive security filter chain.
      *
-     * @param entryPoint the custom authentication entry point
-     */
-    public SecurityConfig(
-            final CustomAuthenticationEntryPoint entryPoint) {
-        this.authenticationEntryPoint = entryPoint;
-    }
-
-    /**
-     * Configure security filter chain.
-     *
-     * @param http the HttpSecurity to modify
-     * @return the configured SecurityFilterChain
-     * @throws Exception if configuration fails
+     * @param http the ServerHttpSecurity to modify
+     * @return the configured SecurityWebFilterChain
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(final HttpSecurity http)
-            throws Exception {
+    public SecurityWebFilterChain securityWebFilterChain(
+            final ServerHttpSecurity http) {
+
         http
-            // Enable CORS
-            .cors(cors -> cors.configure(http))
             // Disable CSRF for stateless API
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
+            .csrf(ServerHttpSecurity.CsrfSpec::disable)
+
+            // Configure authorization rules
+            .authorizeExchange(auth -> auth
                 // Public endpoints (no authentication required)
-                .requestMatchers(
+                .pathMatchers(
                     "/health",
                     "/actuator/health",
                     "/test",
-                    // WebSocket and SockJS endpoints (HTTP fallback)
+                    // WebSocket endpoints
                     "/ws",
                     "/ws/**",
                     // Swagger UI & OpenAPI
@@ -63,17 +49,20 @@ public class SecurityConfig {
                     "/swagger-ui.html",
                     "/swagger-ui/**"
                 ).permitAll()
+
                 // All other requests require authentication
-                .anyRequest().authenticated()
+                .anyExchange().authenticated()
             )
+
+            // Configure OAuth2 Resource Server with JWT
             .oauth2ResourceServer(oauth2 -> oauth2
-                .authenticationEntryPoint(authenticationEntryPoint)
+                .authenticationEntryPoint(
+                    new HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED))
                 .jwt(jwt -> {
-                    // JWT validation is configured
-                    // via application.properties
+                    // JWT validation configured via application.yml
                 })
             );
+
         return http.build();
     }
 }
-

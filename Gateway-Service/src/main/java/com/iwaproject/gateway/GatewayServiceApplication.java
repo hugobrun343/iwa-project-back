@@ -2,11 +2,12 @@ package com.iwaproject.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.reactive.ReactiveOAuth2ResourceServerAutoConfiguration;
 
 /**
  * Main application class for Gateway Service.
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {ReactiveOAuth2ResourceServerAutoConfiguration.class})
 public class GatewayServiceApplication {
 
     /**

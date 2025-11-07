@@ -3,37 +3,36 @@ package com.iwaproject.gateway.config;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.
-        EnableWebSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 
 /**
- * Test security configuration.
- * Disables OAuth2 for tests.
+ * Test security configuration that disables authentication.
+ * Only active with 'test' profile.
  */
 @TestConfiguration
-@EnableWebSecurity
+@EnableWebFluxSecurity
 @Profile("test")
 public class TestSecurityConfig {
 
-    /**
-     * Configure security filter chain for tests.
-     * All requests are permitted without authentication.
-     *
-     * @param http the HttpSecurity to modify
-     * @return the configured SecurityFilterChain
-     * @throws Exception if configuration fails
-     */
-    @Bean
-    public SecurityFilterChain testSecurityFilterChain(
-            final HttpSecurity http) throws Exception {
-        http
-            .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll()
-            )
-            .csrf(csrf -> csrf.disable());
-        return http.build();
-    }
+  /**
+   * Configure security to permit all requests in test environment.
+   *
+   * @param http the ServerHttpSecurity to modify
+   * @return the configured SecurityWebFilterChain
+   */
+  @Bean
+  public SecurityWebFilterChain testSecurityWebFilterChain(
+      final ServerHttpSecurity http) {
+
+    http
+        .csrf(ServerHttpSecurity.CsrfSpec::disable)
+        .authorizeExchange(auth -> auth
+            .anyExchange().permitAll()
+        );
+
+    return http.build();
+  }
 }
 

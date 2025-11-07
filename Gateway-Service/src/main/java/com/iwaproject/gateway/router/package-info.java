@@ -1,5 +1,5 @@
 /**
- * Router package for IWA Project Gateway.
- * Contains the ServiceRouter that routes requests to backend microservices.
+ * Advanced routing configuration for Spring Cloud Gateway.
+ * Programmatic route definitions and custom routing logic.
  */
 package com.iwaproject.gateway.router;

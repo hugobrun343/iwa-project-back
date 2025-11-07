@@ -6,9 +6,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 
 /**
  * JWT configuration with optional issuer validation.
@@ -30,15 +30,15 @@ public class JwtConfig {
     private boolean skipIssuerValidation;
 
     /**
-     * Configure JWT decoder.
+     * Configure reactive JWT decoder for WebFlux.
      * In dev mode, skip issuer validation to allow localhost/docker URLs.
      * Signature is ALWAYS validated via JWK.
      *
-     * @return JwtDecoder
+     * @return ReactiveJwtDecoder
      */
     @Bean
-    public JwtDecoder jwtDecoder() {
-        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder
+    public ReactiveJwtDecoder jwtDecoder() {
+        NimbusReactiveJwtDecoder jwtDecoder = NimbusReactiveJwtDecoder
                 .withJwkSetUri(jwkSetUri)
                 .build();
 

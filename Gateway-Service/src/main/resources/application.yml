@@ -1,0 +1,82 @@
+spring:
+  application:
+    name: gateway-service
+
+  main:
+    web-application-type: reactive
+
+  cloud:
+    gateway:
+      # Global CORS configuration is handled by CorsGlobalConfig.java
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "${CORS_GATEWAY_ORIGINS:http://localhost:3000}"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+      # Default filters applied to all routes
+      default-filters:
+        - RemoveResponseHeader=Server
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      server:
+        webflux:
+          routes:
+            - id: user-service
+              uri: http://user-service:8081
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - RewritePath=/api/users/(?<segment>.*), /users/$\{segment}
+            - id: chat-service
+              uri: ws://chat-service:8082
+              predicates:
+                - Path=/chat/**
+
+  # Security OAuth2 Resource Server configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:master}
+          jwk-set-uri: ${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:master}/protocol/openid-connect/certs
+
+# Server configuration
+server:
+  port: ${GATEWAY_PORT:8085}
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# CORS configuration
+cors:
+  allowed:
+    origins: ${CORS_GATEWAY_ORIGINS:http://localhost:3000,http://localhost:8085}
+
+# Gateway secret for service-to-service authentication
+gateway:
+  secret: ${GATEWAY_SECRET:default-secret-change-in-production}
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.iwaproject: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.reactive: DEBUG
