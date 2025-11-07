@@ -26,6 +26,11 @@ public class GatewayRouteConfig {
         log.info("Configuring custom gateway routes");
 
         return builder.routes()
+                // WebSocket route for Chat Service
+                .route("chat-websocket", r -> r
+                        .path("/ws/**")
+                        .uri("http://chat-service:8084"))
+
                 // Example: Add custom headers to specific routes
                 .route("user-with-headers", r -> r
                         .path("/api/users/me")

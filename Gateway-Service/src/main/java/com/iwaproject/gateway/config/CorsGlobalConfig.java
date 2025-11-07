@@ -29,9 +29,9 @@ public class CorsGlobalConfig {
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
 
-        // Parse allowed origins from comma-separated string
-        List<String> allowedOrigins = Arrays.asList(corsOrigins.split(","));
-        corsConfig.setAllowedOrigins(allowedOrigins);
+        // Use single wildcard pattern to allow all origins including null
+        // This is necessary for WebSocket connections from file:// or null origins
+        corsConfig.addAllowedOriginPattern("*");
 
         // Allow all common HTTP methods
         corsConfig.setAllowedMethods(Arrays.asList(

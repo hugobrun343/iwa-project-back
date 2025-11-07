@@ -36,9 +36,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(final StompEndpointRegistry registry) {
         // Register "/ws" endpoint for WebSocket connections
         // The discussion ID will be passed in the destination path when sending messages
-        // Allow SockJS fallback options
+        // CORS is handled by the Gateway - do not configure origins here
+        // to avoid duplicate CORS headers
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
                 .withSockJS();
     }
 }

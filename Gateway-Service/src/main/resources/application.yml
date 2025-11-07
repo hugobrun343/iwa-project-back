@@ -8,20 +8,7 @@ spring:
   cloud:
     gateway:
       # Global CORS configuration is handled by CorsGlobalConfig.java
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: "${CORS_GATEWAY_ORIGINS:http://localhost:3000}"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - PATCH
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
+      # Do not configure it here to avoid duplicate headers
 
       # Default filters applied to all routes
       default-filters:
@@ -29,19 +16,17 @@ spring:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       server:
         webflux:
-          routes:
-            - id: user-service
-              uri: http://user-service:8081
-              predicates:
-                - Path=/api/users/**
-              filters:
-                - RewritePath=/api/users/(?<segment>.*), /users/$\{segment}
-            - id: chat-service
-              uri: ws://chat-service:8082
-              predicates:
-                - Path=/chat/**
-
-  # Security OAuth2 Resource Server configuration
+      routes:
+        - id: user-service
+          uri: http://user-service:8081
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /users/$\{segment}
+        - id: chat-service-http
+          uri: http://chat-service:8084
+          predicates:
+            - Path=/chat/**  # Security OAuth2 Resource Server configuration
   security:
     oauth2:
       resourceserver:

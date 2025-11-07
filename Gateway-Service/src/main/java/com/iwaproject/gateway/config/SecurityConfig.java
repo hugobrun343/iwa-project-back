@@ -3,6 +3,7 @@ package com.iwaproject.gateway.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -18,6 +19,16 @@ import org.springframework.security.web.server.authentication.HttpStatusServerEn
 @EnableWebFluxSecurity
 @Profile("!test")
 public class SecurityConfig {
+
+    private static final String[] PUBLIC_PATHS = {
+        "/health",
+        "/actuator/health",
+        "/test",
+        "/v3/api-docs/**",
+        "/swagger-ui.html",
+        "/swagger-ui/**",
+        "/ws/**" // Allow WebSocket connections
+    };
 
     /**
      * Configure reactive security filter chain.
@@ -35,21 +46,10 @@ public class SecurityConfig {
 
             // Configure authorization rules
             .authorizeExchange(auth -> auth
+                // Allow pre-flight CORS requests
+                .pathMatchers(HttpMethod.OPTIONS).permitAll()
                 // Public endpoints (no authentication required)
-                .pathMatchers(
-                    "/health",
-                    "/actuator/health",
-                    "/test",
-                    // WebSocket endpoints
-                    "/ws",
-                    "/ws/**",
-                    // Swagger UI & OpenAPI
-                    "/v3/api-docs",
-                    "/v3/api-docs/**",
-                    "/swagger-ui.html",
-                    "/swagger-ui/**"
-                ).permitAll()
-
+                .pathMatchers(PUBLIC_PATHS).permitAll()
                 // All other requests require authentication
                 .anyExchange().authenticated()
             )
