@@ -34,6 +34,7 @@
             **/config/**,
             **/dto/**,
             **/entity/**,
+            **/entities/**,
             **/model/**,
             **/*Application.java,
             **/*Config.java,
@@ -142,6 +143,7 @@
                         <exclude>**/config/**</exclude>
                         <exclude>**/dto/**</exclude>
                         <exclude>**/entity/**</exclude>
+                        <exclude>**/entities/**</exclude>
                         <exclude>**/model/**</exclude>
                         <!-- Only exclude main application class, not all classes ending with Application -->
                         <exclude>**/*ServiceApplication.class</exclude>

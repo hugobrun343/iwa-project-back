@@ -37,7 +37,7 @@ public class JwtHeadersFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(final ServerWebExchange exchange, final GatewayFilterChain chain) {
         return ReactiveSecurityContextHolder.getContext()
-            .flatMap(securityContext -> {
+            .map(securityContext -> {
                 if (securityContext.getAuthentication() instanceof JwtAuthenticationToken jwtAuth) {
                     Jwt jwt = jwtAuth.getToken();
                     
@@ -65,15 +65,14 @@ public class JwtHeadersFilter implements GlobalFilter, Ordered {
                         log.debug("Added X-Gateway-Secret header");
                     }
                     
-                    ServerHttpRequest request = requestBuilder.build();
-                    
-                    return chain.filter(exchange.mutate().request(request).build());
+                    return exchange.mutate().request(requestBuilder.build()).build();
                 }
                 
-                // No JWT authentication, continue without adding headers
-                return chain.filter(exchange);
+                // No JWT authentication, continue without modifying exchange
+                return exchange;
             })
-            .switchIfEmpty(chain.filter(exchange));
+            .defaultIfEmpty(exchange)
+            .flatMap(chain::filter);
     }
 
     /**
