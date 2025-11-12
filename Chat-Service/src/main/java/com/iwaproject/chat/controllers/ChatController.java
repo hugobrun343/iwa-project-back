@@ -63,6 +63,13 @@ public class ChatController {
             @RequestParam(value = "limit", required = false,
                     defaultValue = "20") final int limit) {
 
+        // Validate X-Username header
+        if (userId == null || userId.trim().isEmpty()) {
+            kafkaLogService.warn(LOGGER_NAME,
+                    "Missing or empty X-Username header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         kafkaLogService.info(LOGGER_NAME,
                 "GET /me/discussions - User: " + userId
                 + ", page: " + page + ", limit: " + limit);
@@ -92,6 +99,13 @@ public class ChatController {
             @RequestHeader("X-Username") final String userId,
             @RequestParam("announcementId") final Long announcementId,
             @RequestParam("recipientId") final String recipientId) {
+
+        // Validate X-Username header
+        if (userId == null || userId.trim().isEmpty()) {
+            kafkaLogService.warn(LOGGER_NAME,
+                    "Missing or empty X-Username header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
         kafkaLogService.info(LOGGER_NAME,
                 "GET /discussions - User: " + userId
@@ -123,6 +137,13 @@ public class ChatController {
             @PathVariable("id") final Long id,
             @RequestHeader("X-Username") final String userId) {
 
+        // Validate X-Username header
+        if (userId == null || userId.trim().isEmpty()) {
+            kafkaLogService.warn(LOGGER_NAME,
+                    "Missing or empty X-Username header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         kafkaLogService.info(LOGGER_NAME,
                 "GET /discussions/" + id + " - User: " + userId);
 
@@ -153,6 +174,13 @@ public class ChatController {
                     defaultValue = "0") final int page,
             @RequestParam(value = "limit", required = false,
                     defaultValue = "20") final int limit) {
+
+        // Validate X-Username header
+        if (userId == null || userId.trim().isEmpty()) {
+            kafkaLogService.warn(LOGGER_NAME,
+                    "Missing or empty X-Username header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
         kafkaLogService.info(LOGGER_NAME,
                 "GET /discussions/" + id + "/messages - User: " + userId
@@ -190,6 +218,13 @@ public class ChatController {
     public ResponseEntity<MessageDTO> createMessageWithoutDiscussion(
             @RequestHeader("X-Username") final String userId,
             @RequestBody final CreateMessageDTO createDTO) {
+
+        // Validate X-Username header
+        if (userId == null || userId.trim().isEmpty()) {
+            kafkaLogService.warn(LOGGER_NAME,
+                    "Missing or empty X-Username header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
         kafkaLogService.info(LOGGER_NAME,
                 "POST /messages - User: " + userId);
@@ -248,6 +283,13 @@ public class ChatController {
             @RequestHeader("X-Username") final String userId,
             @RequestBody final CreateMessageDTO createDTO) {
 
+        // Validate X-Username header
+        if (userId == null || userId.trim().isEmpty()) {
+            kafkaLogService.warn(LOGGER_NAME,
+                    "Missing or empty X-Username header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         kafkaLogService.info(LOGGER_NAME,
                 "POST /discussions/" + id + "/messages - User: " + userId);
 
@@ -292,6 +334,13 @@ public class ChatController {
     public ResponseEntity<Void> deleteDiscussion(
             @PathVariable("id") final Long id,
             @RequestHeader("X-Username") final String userId) {
+
+        // Validate X-Username header
+        if (userId == null || userId.trim().isEmpty()) {
+            kafkaLogService.warn(LOGGER_NAME,
+                    "Missing or empty X-Username header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
         kafkaLogService.info(LOGGER_NAME,
                 "DELETE /discussions/" + id + " - User: " + userId);

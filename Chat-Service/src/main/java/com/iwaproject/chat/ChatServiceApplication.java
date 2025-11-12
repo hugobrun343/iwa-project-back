@@ -2,11 +2,13 @@ package com.iwaproject.chat;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Main application class for Chat Service.
  */
 @SpringBootApplication
+@EnableScheduling
 public class ChatServiceApplication {
 
     /**

@@ -2,11 +2,15 @@ package com.iwaproject.chat.services;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 import java.util.UUID;
 
 /**
@@ -91,6 +95,37 @@ public class KafkaConsumerService {
                 + username);
 
         return future;
+    }
+
+    /**
+     * Cleanup expired pending requests to prevent memory leak.
+     * Runs every minute to remove requests older than 10 seconds.
+     */
+    @Scheduled(fixedRate = 60000)
+    public void cleanupExpiredRequests() {
+        int removed = 0;
+        
+        for (Map.Entry<String, CompletableFuture<String>> entry : 
+                pendingRequests.entrySet()) {
+            CompletableFuture<String> future = entry.getValue();
+            
+            // Remove if already done/cancelled, or force timeout
+            if (future.isDone() || future.isCancelled()) {
+                pendingRequests.remove(entry.getKey());
+                removed++;
+            } else {
+                // Force complete with timeout exception for old requests
+                future.completeExceptionally(
+                        new TimeoutException("Request expired during cleanup"));
+                pendingRequests.remove(entry.getKey());
+                removed++;
+            }
+        }
+        
+        if (removed > 0) {
+            kafkaLogService.info(LOGGER_NAME,
+                    "Cleaned up " + removed + " expired Kafka requests");
+        }
     }
 }
 

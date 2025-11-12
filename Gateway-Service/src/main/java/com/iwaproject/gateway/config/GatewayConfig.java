@@ -65,7 +65,7 @@ public class GatewayConfig {
 
             // Chat/Discussion Service routes
             .route("chat-service", r -> r
-                    .path("/api/discussions/**", "/api/me/discussions")
+                    .path("/api/discussions/**", "/api/me/discussions", "/api/messages/**")
                     .uri(chatServiceUrl))
 
             // Rating Service routes
@@ -77,11 +77,6 @@ public class GatewayConfig {
             .route("payment-service", r -> r
                     .path("/api/payments/**")
                     .uri(paymentServiceUrl))
-
-            // WebSocket route for chat
-            .route("websocket-chat", r -> r
-                    .path("/ws/**")
-                    .uri(chatServiceUrl))
 
             .build();
   }

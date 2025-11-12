@@ -382,6 +382,7 @@ public class ChatService {
 
     /**
      * Verify if a user exists via Kafka.
+     * Returns true on timeout to allow degraded mode operation.
      *
      * @param userId the user ID to verify
      * @return true if user exists, false otherwise
@@ -389,10 +390,21 @@ public class ChatService {
     private boolean verifyUserExists(final String userId) {
         try {
             CompletableFuture<String> future = kafkaConsumerService
-                    .checkUserExists(userId);
-            String result = future.get(KAFKA_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    .checkUserExists(userId)
+                    .orTimeout(KAFKA_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            String result = future.get();
             return "true".equals(result);
         } catch (Exception e) {
+            // Check if it's a timeout exception (wrapped or direct)
+            if (e instanceof java.util.concurrent.TimeoutException 
+                    || (e.getCause() instanceof java.util.concurrent.TimeoutException)) {
+                // Accept by default on timeout (degraded mode)
+                log.warn("Kafka timeout verifying user {}, accepting by default", userId);
+                kafkaLogService.warn(LOGGER_NAME,
+                        "Kafka timeout for user verification: " + userId + " - accepting");
+                return true;
+            }
+            // Reject on other errors (network, format, etc.)
             log.error("Error verifying user existence for: {}", userId, e);
             kafkaLogService.error(LOGGER_NAME,
                     "Failed to verify user existence for: " + userId);

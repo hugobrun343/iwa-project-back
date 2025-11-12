@@ -99,22 +99,6 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testPublicPathWebSocket() {
-        // Arrange
-        when(request.getURI()).thenReturn(URI.create("http://localhost/ws/chat"));
-        when(chain.filter(exchange)).thenReturn(Mono.empty());
-
-        // Act
-        Mono<Void> result = filter.filter(exchange, chain);
-
-        // Assert
-        StepVerifier.create(result)
-                .verifyComplete();
-
-        verify(chain, times(1)).filter(exchange);
-    }
-
-    @Test
     void testMissingAuthorizationHeader() {
         // Arrange
         when(request.getURI()).thenReturn(URI.create("http://localhost/api/users"));

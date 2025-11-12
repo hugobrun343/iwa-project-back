@@ -24,8 +24,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/health",
             "/actuator/health",
             "/v3/api-docs",
-            "/swagger-ui",
-            "/ws/"  // WebSocket endpoints
+            "/swagger-ui"
     );
 
     /**

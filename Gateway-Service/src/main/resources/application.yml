@@ -7,13 +7,9 @@ spring:
 
   cloud:
     gateway:
-      # Global CORS configuration is handled by CorsGlobalConfig.java
-      # Do not configure it here to avoid duplicate headers
-
       # Default filters applied to all routes
       default-filters:
         - RemoveResponseHeader=Server
-        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       server:
         webflux:
       routes:
@@ -23,10 +19,50 @@ spring:
             - Path=/api/users/**
           filters:
             - RewritePath=/api/users/(?<segment>.*), /users/$\{segment}
-        - id: chat-service-http
+        - id: chat-service
           uri: http://chat-service:8084
           predicates:
-            - Path=/chat/**  # Security OAuth2 Resource Server configuration
+            - Path=/api/chat/**
+          filters:
+            - RewritePath=/api/chat/(?<segment>.*), /api/$\{segment}
+        - id: announcement-service
+          uri: http://announcement-service:8082
+          predicates:
+            - Path=/api/announcements/**
+          filters:
+            - RewritePath=/api/announcements/(?<segment>.*), /announcements/$\{segment}
+        - id: application-service
+          uri: http://application-service:8083
+          predicates:
+            - Path=/api/applications/**
+          filters:
+            - RewritePath=/api/applications/(?<segment>.*), /applications/$\{segment}
+        - id: favorite-service
+          uri: http://favorite-service:8086
+          predicates:
+            - Path=/api/favorites/**
+          filters:
+            - RewritePath=/api/favorites/(?<segment>.*), /favorites/$\{segment}
+        - id: log-service
+          uri: http://log-service:8087
+          predicates:
+            - Path=/api/logs/**
+          filters:
+            - RewritePath=/api/logs/(?<segment>.*), /logs/$\{segment}
+        - id: payment-service
+          uri: http://payment-service:8088
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - RewritePath=/api/payments/(?<segment>.*), /payments/$\{segment}
+        - id: rating-service
+          uri: http://rating-service:8089
+          predicates:
+            - Path=/api/ratings/**
+          filters:
+            - RewritePath=/api/ratings/(?<segment>.*), /ratings/$\{segment}
+
+  # Security OAuth2 Resource Server configuration
   security:
     oauth2:
       resourceserver:

@@ -33,6 +33,11 @@ public class GatewaySecurityInterceptor implements HandlerInterceptor {
             final HttpServletResponse response,
             final Object handler) throws Exception {
 
+        // Allow preflight requests to pass without gateway validation
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
         // Skip check if no secret configured (for tests/local dev)
         if (expectedSecret == null || expectedSecret.isEmpty()) {
             return true;
