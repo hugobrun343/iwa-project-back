@@ -16,25 +16,43 @@ auth:bearer {
 
 body:json {
   {
-    "ownerId": 1,
     "title": "UPDATED: Home assistance for elderly person",
     "location": "Paris, France",
     "description": "Updated description: focus on mobility support and medication reminders.",
     "specificInstructions": "Please call before arriving.",
-    "careType": { "id": 1 },
+    "careTypeLabel": "Home Care",
     "startDate": "2025-11-02",
     "endDate": "2025-11-12",
     "visitFrequency": "Every 2 days",
     "remuneration": 55.0,
     "identityVerificationRequired": true,
     "urgentRequest": false,
-    "status": "PUBLISHED"
+    "status": "PUBLISHED",
+    "publicImages": [
+      {
+        "imageUrl": "https://example.com/updated-public-image-1.jpg"
+      },
+      {
+        "imageUrl": "https://example.com/updated-public-image-2.jpg"
+      },
+      {
+        "imageUrl": "https://example.com/updated-public-image-3.jpg"
+      }
+    ],
+    "specificImages": [
+      {
+        "imageUrl": "https://example.com/updated-private-instructions-1.jpg"
+      }
+    ]
   }
 }
 
 script:post-response {
   if (res.status === 200) {
     console.log('✅ Announcement updated:', res.body.id);
+    console.log('Public images updated:', res.body.publicImages?.length || 0);
+    console.log('Specific images updated:', res.body.specificImages?.length || 0);
+    console.log('Full response:', JSON.stringify(res.body, null, 2));
   } else {
     console.error('❌ Failed to update announcement:', res.status, res.body);
   }

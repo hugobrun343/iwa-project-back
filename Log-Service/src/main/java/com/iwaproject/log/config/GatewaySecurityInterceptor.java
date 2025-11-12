@@ -44,8 +44,10 @@ public class GatewaySecurityInterceptor implements HandlerInterceptor {
         if (gatewaySecret == null
                 || !gatewaySecret.equals(expectedSecret)) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
             response.getWriter().write(
-                    "{\"error\":\"Direct access forbidden\"}"
+                    "{\"error\":\"Forbidden\","
+                    + "\"message\":\"Access denied\"}"
             );
             return false;
         }

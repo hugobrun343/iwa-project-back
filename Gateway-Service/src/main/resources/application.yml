@@ -1,0 +1,103 @@
+spring:
+  application:
+    name: gateway-service
+
+  main:
+    web-application-type: reactive
+
+  cloud:
+    gateway:
+      # Default filters applied to all routes
+      default-filters:
+        - RemoveResponseHeader=Server
+      server:
+        webflux:
+      routes:
+        - id: user-service
+          uri: http://user-service:8081
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /users/$\{segment}
+        - id: chat-service
+          uri: http://chat-service:8084
+          predicates:
+            - Path=/api/chat/**
+          filters:
+            - RewritePath=/api/chat/(?<segment>.*), /api/$\{segment}
+        - id: announcement-service
+          uri: http://announcement-service:8082
+          predicates:
+            - Path=/api/announcements/**
+          filters:
+            - RewritePath=/api/announcements/(?<segment>.*), /announcements/$\{segment}
+        - id: application-service
+          uri: http://application-service:8083
+          predicates:
+            - Path=/api/applications/**
+          filters:
+            - RewritePath=/api/applications/(?<segment>.*), /applications/$\{segment}
+        - id: favorite-service
+          uri: http://favorite-service:8086
+          predicates:
+            - Path=/api/favorites/**
+          filters:
+            - RewritePath=/api/favorites/(?<segment>.*), /favorites/$\{segment}
+        - id: log-service
+          uri: http://log-service:8087
+          predicates:
+            - Path=/api/logs/**
+          filters:
+            - RewritePath=/api/logs/(?<segment>.*), /logs/$\{segment}
+        - id: payment-service
+          uri: http://payment-service:8088
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - RewritePath=/api/payments/(?<segment>.*), /payments/$\{segment}
+        - id: rating-service
+          uri: http://rating-service:8089
+          predicates:
+            - Path=/api/ratings/**
+          filters:
+            - RewritePath=/api/ratings/(?<segment>.*), /ratings/$\{segment}
+
+  # Security OAuth2 Resource Server configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:master}
+          jwk-set-uri: ${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:master}/protocol/openid-connect/certs
+
+# Server configuration
+server:
+  port: ${GATEWAY_PORT:8085}
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# CORS configuration
+cors:
+  allowed:
+    origins: ${CORS_GATEWAY_ORIGINS:http://localhost:3000,http://localhost:8085}
+
+# Gateway secret for service-to-service authentication
+gateway:
+  secret: ${GATEWAY_SECRET:default-secret-change-in-production}
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.iwaproject: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.reactive: DEBUG

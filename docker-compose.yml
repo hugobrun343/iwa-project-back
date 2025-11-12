@@ -96,7 +96,9 @@ services:
       - iwa-network
 
   kafka:
-    image: apache/kafka:4.1.0
+    build:
+      context: .
+      dockerfile: ./Kafka-Service/Dockerfile
     container_name: kafka
     ports:
       - "9092:9092"
@@ -132,7 +134,9 @@ services:
       - iwa-network
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    build:
+      context: .
+      dockerfile: ./Elasticsearch-Service/Dockerfile
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
@@ -225,7 +229,9 @@ services:
 # region Services
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    build:
+      context: .
+      dockerfile: ./Keycloak-Service/Dockerfile
     container_name: keycloak-service
     environment:
       KEYCLOAK_ADMIN: admin
@@ -304,7 +310,14 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: ${CHAT_SERVICE_PORT}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_LOGS_TOPIC: microservices-logs
+      KAFKA_CHAT_CONSUMER_GROUP_ID: ${KAFKA_CHAT_CONSUMER_GROUP_ID:-chat-group}
+      KAFKA_CHAT_LISTENER_CONCURRENCY: ${KAFKA_CHAT_LISTENER_CONCURRENCY:-3}
+      KAFKA_CHAT_CONSUMER_AUTO_OFFSET_RESET: ${KAFKA_CHAT_CONSUMER_AUTO_OFFSET_RESET:-earliest}
       GATEWAY_SECRET: ${GATEWAY_SECRET}
+      CORS_GATEWAY_ORIGINS: ${CORS_GATEWAY_ORIGINS}
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_SERVER_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
     ports:
       - "${CHAT_SERVICE_PORT}:${CHAT_SERVICE_PORT}"
     restart: unless-stopped
@@ -473,6 +486,7 @@ services:
       - "${GATEWAY_SERVICE_PORT}:${GATEWAY_SERVICE_PORT}"
     restart: unless-stopped
     depends_on:
+      - keycloak
       - announcement-service
       - application-service
       - chat-service

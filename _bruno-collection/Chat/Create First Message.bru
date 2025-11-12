@@ -1,0 +1,63 @@
+meta {
+  name: Create First Message
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/messages
+  body: json
+  auth: bearer
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "content": "Hello! This is the first message to start a discussion.",
+    "announcementId": {{ANNOUNCEMENT_ID}},
+    "recipientId": "{{RECIPIENT_ID}}"
+  }
+}
+
+script:pre-request {
+  // Validate required parameters
+  if (!bru.getEnvVar('ANNOUNCEMENT_ID') || bru.getEnvVar('ANNOUNCEMENT_ID') === '') {
+    console.error('❌ ANNOUNCEMENT_ID is required');
+  }
+  if (!bru.getEnvVar('RECIPIENT_ID') || bru.getEnvVar('RECIPIENT_ID') === '') {
+    console.error('❌ RECIPIENT_ID is required');
+  }
+  console.log('ℹ️ Creating first message without existing discussion');
+}
+
+script:post-response {
+  if (res.status === 201) {
+    console.log('✅ First message created successfully');
+    console.log('💬 Message ID:', res.body.id);
+    console.log('💬 Discussion ID:', res.body.discussionId);
+    console.log('📝 Content:', res.body.content);
+    console.log('👤 Author:', res.body.authorId);
+    console.log('📅 Created at:', res.body.createdAt);
+    
+    // Update DISCUSSION_ID for future requests
+    if (res.body.discussionId) {
+      bru.setEnvVar('DISCUSSION_ID', res.body.discussionId);
+      console.log('💾 DISCUSSION_ID updated to:', res.body.discussionId);
+    }
+  } else if (res.status === 400) {
+    console.error('❌ Bad request - Check that announcementId, recipientId, and content are provided');
+    console.error('Response:', res.body);
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to create first message:', res.status, res.body);
+  }
+}

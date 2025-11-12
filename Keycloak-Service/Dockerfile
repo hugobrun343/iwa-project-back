@@ -6,8 +6,8 @@ RUN apk add --no-cache maven
 WORKDIR /app
 
 # Copy each theme directory explicitly
-COPY keycloakify-theme-homeguard ./keycloakify-theme-homeguard
-COPY build-all-themes.sh ./
+COPY Keycloak-Service/keycloakify-theme-homeguard ./keycloakify-theme-homeguard
+COPY Keycloak-Service/build-all-themes.sh ./
 
 # Ensure Unix line endings and execute the build script
 RUN sed -i 's/\r$//' build-all-themes.sh \

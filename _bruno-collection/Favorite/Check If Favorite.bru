@@ -1,0 +1,28 @@
+meta {
+  name: Check If Favorite
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/favorites/check?announcementId=1
+  body: none
+  auth: bearer
+}
+
+params:query {
+  announcementId: 1
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Check completed');
+    console.log('❤️ Is favorite:', res.body.isFavorite);
+  } else {
+    console.error('❌ Failed to check favorite:', res.status);
+  }
+}

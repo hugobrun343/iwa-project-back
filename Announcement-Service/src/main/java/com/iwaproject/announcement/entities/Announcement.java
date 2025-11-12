@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -18,6 +19,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Announcement entity.
@@ -27,7 +29,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Announcement {
+public class    Announcement {
     /**
      * Id.
      */
@@ -36,10 +38,10 @@ public class Announcement {
     private Long id;
 
     /**
-     * Owner id.
+     * Owner username.
      */
-    @Column(name = "owner_id", nullable = false)
-    private Long ownerId;
+    @Column(name = "owner_username", nullable = false)
+    private String ownerUsername;
 
     /**
      * Title.
@@ -122,6 +124,12 @@ public class Announcement {
     private LocalDateTime creationDate;
 
     /**
+     * Images.
+     */
+    @OneToMany(mappedBy = "announcement", fetch = FetchType.LAZY)
+    private List<Image> images;
+
+    /**
      * Set creation date before persist.
      */
     @PrePersist
@@ -145,5 +153,16 @@ public class Announcement {
          * Completed status.
          */
         COMPLETED
+    }
+
+    /**
+     * Remove specific instructions from the announcement.
+     * Used to hide sensitive information from unauthorized users.
+     *
+     * @return this announcement instance
+     */
+    public Announcement removeSpecificInstructions() {
+        this.specificInstructions = null;
+        return this;
     }
 }

@@ -1,0 +1,26 @@
+meta {
+  name: Get My Favorites
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/favorites
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log(`✅ Retrieved ${Array.isArray(res.body) ? res.body.length : 0} favorites`);
+    if (Array.isArray(res.body) && res.body.length > 0) {
+      console.log('📋 First favorite:', res.body[0]);
+    }
+  } else {
+    console.error('❌ Failed to get favorites:', res.status);
+  }
+}

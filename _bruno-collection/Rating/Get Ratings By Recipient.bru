@@ -1,0 +1,47 @@
+meta {
+  name: Get Ratings By Recipient
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/ratings/recipient/{{RECIPIENT_ID}}?page=0&limit=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:pre-request {
+  if (!{{RECIPIENT_ID}} || {{RECIPIENT_ID}} === '') {
+    console.error('❌ RECIPIENT_ID is required');
+    bru.setEnvVar('_skip', 'true');
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Ratings retrieved successfully');
+    console.log('📋 Total ratings:', res.body.totalElements);
+    console.log('📄 Current page:', res.body.number);
+    if (res.body.content && res.body.content.length > 0) {
+      console.log('⭐ Ratings:', res.body.content.length);
+      res.body.content.forEach((rating, index) => {
+        console.log(`  ${index + 1}. [${rating.authorId}] - Note: ${rating.note} - "${rating.commentaire}"`);
+      });
+      if (!{{RATING_ID}} || {{RATING_ID}} === '') {
+        bru.setEnvVar('RATING_ID', res.body.content[0].id);
+      }
+    } else {
+      console.log('⭐ No ratings found for this recipient');
+    }
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to get ratings:', res.status, res.body);
+  }
+}
+

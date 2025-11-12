@@ -1,0 +1,69 @@
+meta {
+  name: Create Message
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/discussions/{{DISCUSSION_ID}}/messages
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USER_ID}}
+}
+
+body:json {
+  {
+    "content": "Hello! This is a test message from Bruno.",
+    "announcementId": {{ANNOUNCEMENT_ID}},
+    "recipientId": "{{RECIPIENT_ID}}"
+  }
+}
+
+script:pre-request {
+  // Validate required parameters
+  if (!{{ANNOUNCEMENT_ID}} || {{ANNOUNCEMENT_ID}} === '') {
+    console.error('❌ ANNOUNCEMENT_ID is required');
+  }
+  if (!{{RECIPIENT_ID}} || {{RECIPIENT_ID}} === '') {
+    console.error('❌ RECIPIENT_ID is required');
+  }
+  // DISCUSSION_ID is optional - message creation will create discussion if needed
+  if (!{{DISCUSSION_ID}} || {{DISCUSSION_ID}} === '') {
+    console.log('ℹ️ DISCUSSION_ID is empty - discussion will be created automatically');
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    console.log('✅ Message created successfully');
+    console.log('💬 Message ID:', res.body.id);
+    console.log('💬 Discussion ID:', res.body.discussionId);
+    console.log('📝 Content:', res.body.content);
+    console.log('👤 Author:', res.body.authorId);
+    console.log('📅 Created at:', res.body.createdAt);
+    // Update DISCUSSION_ID (discussion was created or already existed)
+    if (res.body.discussionId) {
+      bru.setEnvVar('DISCUSSION_ID', res.body.discussionId);
+      console.log('💾 DISCUSSION_ID updated to:', res.body.discussionId);
+    }
+  } else if (res.status === 400) {
+    console.error('❌ Bad request - Missing announcementId or recipientId to create discussion');
+    console.error('Response:', res.body);
+  } else if (res.status === 401) {
+    console.error('❌ Unauthorized - Token may be expired or invalid');
+    console.error('Response:', res.body);
+  } else if (res.status === 404) {
+    console.error('❌ Discussion not found');
+    console.error('Response:', res.body);
+  } else {
+    console.error('❌ Failed to create message:', res.status, res.body);
+  }
+}
+

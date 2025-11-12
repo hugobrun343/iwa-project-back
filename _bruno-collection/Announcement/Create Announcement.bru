@@ -14,9 +14,12 @@ auth:bearer {
   token: {{ACCESS_TOKEN}}
 }
 
+headers {
+  X-Username: {{USERNAME}}
+}
+
 body:json {
   {
-    "ownerId": 1,
     "title": "Home assistance for elderly person",
     "location": "Paris, France",
     "description": "Need daily assistance for an elderly person including meal preparation and companionship.",
@@ -28,13 +31,32 @@ body:json {
     "remuneration": 50.0,
     "identityVerificationRequired": true,
     "urgentRequest": false,
-    "status": "PUBLISHED"
+    "status": "PUBLISHED",
+    "publicImages": [
+      {
+        "imageUrl": "https://example.com/public-image-1.jpg"
+      },
+      {
+        "imageUrl": "https://example.com/public-image-2.jpg"
+      }
+    ],
+    "specificImages": [
+      {
+        "imageUrl": "https://example.com/private-instructions-1.jpg"
+      },
+      {
+        "imageUrl": "https://example.com/private-instructions-2.jpg"
+      }
+    ]
   }
 }
 
 script:post-response {
   if (res.status === 201) {
     console.log('✅ Announcement created:', res.body.id);
+    console.log('Public images saved:', res.body.publicImages?.length || 0);
+    console.log('Specific images saved:', res.body.specificImages?.length || 0);
+    console.log('Full response:', JSON.stringify(res.body, null, 2));
   } else {
     console.error('❌ Failed to create announcement:', res.status, res.body);
   }

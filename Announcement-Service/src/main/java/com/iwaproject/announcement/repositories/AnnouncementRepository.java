@@ -14,12 +14,12 @@ import java.util.List;
 public interface AnnouncementRepository
         extends JpaRepository<Announcement, Long> {
     /**
-     * Find announcements by owner id.
+     * Find announcements by owner username.
      *
-     * @param ownerId the owner id
+     * @param ownerUsername the owner username
      * @return list of announcements
      */
-    List<Announcement> findByOwnerId(Long ownerId);
+    List<Announcement> findByOwnerUsername(String ownerUsername);
 
     /**
      * Find announcements by status.
@@ -30,12 +30,12 @@ public interface AnnouncementRepository
     List<Announcement> findByStatus(AnnouncementStatus status);
 
     /**
-     * Find announcements by owner id and status.
+     * Find announcements by owner username and status.
      *
-     * @param ownerId the owner id
+     * @param ownerUsername the owner username
      * @param status the status
      * @return list of announcements
      */
-    List<Announcement> findByOwnerIdAndStatus(Long ownerId,
+    List<Announcement> findByOwnerUsernameAndStatus(String ownerUsername,
                                                AnnouncementStatus status);
 }

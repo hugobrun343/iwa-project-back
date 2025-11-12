@@ -47,7 +47,7 @@ public class CorsConfig {
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
 
-        // Allow all headers (including X-Gateway-Secret)
+        // Allow all headers (including X-Username, X-Gateway-Secret)
         configuration.setAllowedHeaders(List.of("*"));
 
         // Allow credentials

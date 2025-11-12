@@ -1,0 +1,23 @@
+meta {
+  name: Get All Applications
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/applications
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log(`✅ Retrieved ${Array.isArray(res.body) ? res.body.length : 0} applications`);
+  } else {
+    console.error('❌ Failed to get applications:', res.status);
+  }
+}

@@ -1,0 +1,34 @@
+meta {
+  name: Add Favorite
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/favorites
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "announcementId": 1
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    console.log('✅ Favorite added successfully');
+    console.log('🆔 Favorite ID:', res.body.id);
+    console.log('📢 Announcement ID:', res.body.announcementId);
+    console.log('📅 Date added:', res.body.dateAdded);
+  } else if (res.status === 409) {
+    console.warn('⚠️ Favorite already exists');
+  } else {
+    console.error('❌ Failed to add favorite:', res.status, res.body);
+  }
+}

@@ -1,4 +1,4 @@
-name: Build and Deploy
+name: Build and Push
 
 on:
   workflow_run:
@@ -8,11 +8,11 @@ on:
   workflow_dispatch:
     inputs:
       services:
-        description: 'Services to deploy (comma-separated or all): gateway, user, announcement, application, chat, favorite, payment, rating, all'
+        description: 'Services to build (comma-separated or all): gateway, user, announcement, application, chat, favorite, payment, rating, keycloak, kafka, elasticsearch, all'
         required: false
         default: 'all'
 
-run-name: Build and Deploy - ${{ github.event.workflow_run.head_commit.message }}
+run-name: Build and Push - ${{ github.event.workflow_run.head_commit.message }}
 
 env:
   REGISTRY: ghcr.io
@@ -40,33 +40,36 @@ jobs:
         id: changes
         run: |
           declare -A SERVICES=(
-            ["Gateway-Service"]="gateway:homeguard"
-            ["Announcement-Service"]="announcement:homeguard-announcement"
-            ["Application-Service"]="application:homeguard-application"
-            ["Chat-Service"]="chat:homeguard-chat"
-            ["Favorite-Service"]="favorite:homeguard-favorite"
-            ["Log-Service"]="log:homeguard-log"
-            ["Payment-Service"]="payment:homeguard-payment"
-            ["Rating-Service"]="rating:homeguard-rating"
-            ["User-Service"]="user:homeguard-user"
+            ["Gateway-Service"]="gateway"
+            ["Announcement-Service"]="announcement"
+            ["Application-Service"]="application"
+            ["Chat-Service"]="chat"
+            ["Favorite-Service"]="favorite"
+            ["Keycloak-Service"]="keycloak"
+            ["Kafka-Service"]="kafka"
+            ["Elasticsearch-Service"]="elasticsearch"
+            ["Log-Service"]="log"
+            ["Payment-Service"]="payment"
+            ["Rating-Service"]="rating"
+            ["User-Service"]="user"
           )
           
           MATRIX='{"include":[]}'
           
-          # Manual trigger - deploy selected services
+          # Manual trigger - build selected services
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             SERVICES_INPUT="${{ github.event.inputs.services }}"
             echo "Manual trigger detected. Services requested: $SERVICES_INPUT"
             
             if [ "$SERVICES_INPUT" = "all" ]; then
-              echo "Deploying all services"
+              echo "Building all services"
               for folder in "${!SERVICES[@]}"; do
-                IFS=':' read -r service dokku_app <<< "${SERVICES[$folder]}"
-                echo "✅ $folder - will deploy $service to $dokku_app"
-                MATRIX=$(echo "$MATRIX" | jq --arg folder "$folder" --arg service "$service" --arg dokku_app "$dokku_app" '.include += [{"folder": $folder, "service": $service, "dokku-app": $dokku_app}]')
+                service="${SERVICES[$folder]}"
+                echo "✅ $folder - will build $service"
+                MATRIX=$(echo "$MATRIX" | jq --arg folder "$folder" --arg service "$service" '.include += [{"folder": $folder, "service": $service}]')
               done
             else
-              # Deploy specific services
+              # Build specific services
               IFS=',' read -ra REQUESTED <<< "$SERVICES_INPUT"
               for req in "${REQUESTED[@]}"; do
                 case "$req" in
@@ -75,15 +78,18 @@ jobs:
                   application) folder="Application-Service" ;;
                   chat) folder="Chat-Service" ;;
                   favorite) folder="Favorite-Service" ;;
+                  keycloak) folder="Keycloak-Service" ;;
+                  kafka) folder="Kafka-Service" ;;
+                  elasticsearch) folder="Elasticsearch-Service" ;;
                   log) folder="Log-Service" ;;
                   payment) folder="Payment-Service" ;;
                   rating) folder="Rating-Service" ;;
                   user) folder="User-Service" ;;
                   *) echo "⚠️ Unknown service: $req"; continue ;;
                 esac
-                IFS=':' read -r service dokku_app <<< "${SERVICES[$folder]}"
-                echo "✅ $folder - will deploy $service to $dokku_app"
-                MATRIX=$(echo "$MATRIX" | jq --arg folder "$folder" --arg service "$service" --arg dokku_app "$dokku_app" '.include += [{"folder": $folder, "service": $service, "dokku-app": $dokku_app}]')
+                service="${SERVICES[$folder]}"
+                echo "✅ $folder - will build $service"
+                MATRIX=$(echo "$MATRIX" | jq --arg folder "$folder" --arg service "$service" '.include += [{"folder": $folder, "service": $service}]')
               done
             fi
           else
@@ -93,9 +99,9 @@ jobs:
             
             for folder in "${!SERVICES[@]}"; do
               if echo "$CHANGED_FILES" | grep -q "^$folder/"; then
-                IFS=':' read -r service dokku_app <<< "${SERVICES[$folder]}"
-                echo "✅ $folder changed - will deploy $service to $dokku_app"
-                MATRIX=$(echo "$MATRIX" | jq --arg folder "$folder" --arg service "$service" --arg dokku_app "$dokku_app" '.include += [{"folder": $folder, "service": $service, "dokku-app": $dokku_app}]')
+                service="${SERVICES[$folder]}"
+                echo "✅ $folder changed - will build $service"
+                MATRIX=$(echo "$MATRIX" | jq --arg folder "$folder" --arg service "$service" '.include += [{"folder": $folder, "service": $service}]')
               else
                 echo "⏭️ $folder unchanged - skipping"
               fi
@@ -116,8 +122,6 @@ jobs:
       contents: read
       packages: write
     if: needs.detect-changes.outputs.matrix != '{"include":[]}'
-    outputs:
-      short-sha: ${{ steps.sha.outputs.short_sha }}
 
     steps:
       - name: Checkout repository
@@ -170,137 +174,6 @@ jobs:
             TARGETPLATFORM=linux/amd64
           outputs: type=registry
 
-  deploy-to-dokku:
-    needs: [detect-changes, build-and-push]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
-    permissions:
-      contents: read
-    if: needs.detect-changes.outputs.matrix != '{"include":[]}'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Required Packages
-        run: |
-          sudo apt-get install -y strongswan=5.9.13-2ubuntu4 xl2tpd=1.3.18-1build2 net-tools=2.10-0.1ubuntu4.4 jq=1.7.1-3ubuntu0.24.04.1
-
-      - name: Add VPN Connection
-        run: |
-          sudo bash -c 'cat > /etc/ipsec.conf <<EOF
-          conn myvpn
-            auto=add
-            keyexchange=ikev1
-            authby=secret
-            type=transport
-            left=%defaultroute
-            leftprotoport=17/1701
-            rightprotoport=17/1701
-            right=${{ secrets.VPN_GATEWAY }}
-            ike=3des-sha1-modp1024
-            esp=3des-sha1
-          EOF'
-
-          sudo bash -c 'cat > /etc/ipsec.secrets <<EOF
-          : PSK "${{ secrets.VPN_PSK }}"
-          EOF'
-
-          sudo chmod 600 /etc/ipsec.secrets
-
-          sudo bash -c 'cat > /etc/xl2tpd/xl2tpd.conf <<EOF
-          [lac myvpn]
-          lns = ${{ secrets.VPN_GATEWAY }}
-          ppp debug = yes
-          pppoptfile = /etc/ppp/options.l2tpd.client
-          length bit = yes
-          EOF'
-
-          sudo bash -c 'cat > /etc/ppp/options.l2tpd.client <<EOF
-          ipcp-accept-local
-          ipcp-accept-remote
-          refuse-eap
-          require-mschap-v2
-          noccp
-          noauth
-          mtu 1280
-          mru 1280
-          noipdefault
-          defaultroute
-          usepeerdns
-          connect-delay 5000
-          domain "${{ secrets.VPN_NT_DOMAIN }}"
-          name "${{ secrets.VPN_USERNAME }}"
-          password "${{ secrets.VPN_PASSWORD }}"
-          EOF'
-
-          sudo chmod 600 /etc/ppp/options.l2tpd.client
-
-      - name: Start VPN Connection
-        run: |
-          sudo mkdir -p /var/run/xl2tpd
-          sudo touch /var/run/xl2tpd/l2tp-control
-          sudo service ipsec restart
-          sudo service xl2tpd restart
-
-          echo "Starting VPN connection..."
-          
-          timeout 30 sudo ipsec up myvpn || {
-              echo "❌ IPSec connection failed or timeout"
-              echo "Debug info:"
-              sudo ipsec status
-              exit 1
-          }
-          
-          echo "c myvpn" | sudo tee /var/run/xl2tpd/l2tp-control
-
-          TIMEOUT=60
-          COUNTER=0
-          while ! ip addr show ppp0 | grep -q "inet "; do
-              echo "Waiting for ppp0 to be up... ($COUNTER/$TIMEOUT)"
-              sleep 1
-              COUNTER=$((COUNTER + 1))
-              if [ $COUNTER -gt $TIMEOUT ]; then
-                  echo "❌ VPN connection timeout after $TIMEOUT seconds"
-                  echo "Debug info:"
-                  ip addr show
-                  sudo ipsec status
-                  exit 1
-              fi
-          done
-          echo "✅ ppp0 is up!"
-
-          echo "Adding route to Dokku server..."
-          sudo ip route add $(nslookup ${{ secrets.DOKKU_ADDR }} | awk '/^Address: / { print $2 }' | tail -n1) dev ppp0
-
-      - name: Setup SSH Key for Dokku
-        run: |
-          echo "Setting up SSH key..."
-          mkdir -p ~/.ssh
-          cat <<EOF > ~/.ssh/id_rsa
-          ${{ secrets.DOKKU_SSH_KEY }}
-          EOF
-          chmod 600 ~/.ssh/id_rsa
-          eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ secrets.DOKKU_ADDR }}" >> ~/.ssh/known_hosts || { echo "❌ ssh-keyscan failed"; exit 1; }
-
-      - name: Deploy from GitHub Container Registry
-        run: |
-          echo "🚀 Deploying ${{ matrix.service }} from GitHub Container Registry to ${{ matrix.dokku-app }}"
-          
-          SHORT_SHA="${{ needs.build-and-push.outputs.short-sha }}"
-          echo "Using short SHA: $SHORT_SHA"
-          
-          ssh dokku@${{ secrets.DOKKU_ADDR }} "git:from-image ${{ matrix.dokku-app }} ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:$SHORT_SHA"
-
-      - name: Disconnect VPN
-        if: always()
-        run: |
-          echo "d myvpn" | sudo tee /var/run/xl2tpd/l2tp-control
-          sudo ipsec down myvpn
-
-      - name: Notify Deployment Success
+      - name: Notify Build Success
         if: success()
-        run: echo "🚀 Successfully deployed ${{ matrix.service }} to Dokku!"
+        run: echo "✅ Successfully built and pushed ${{ matrix.service }} to GitHub Container Registry!"

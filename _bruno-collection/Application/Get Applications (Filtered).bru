@@ -1,0 +1,35 @@
+meta {
+  name: Get Applications (Filtered)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/applications?announcementId=1&status=PENDING
+  body: none
+  auth: bearer
+}
+
+params:query {
+  announcementId: 1
+  status: PENDING
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log(`✅ Retrieved ${Array.isArray(res.body) ? res.body.length : 0} filtered applications`);
+  } else {
+    console.error('❌ Failed to get applications:', res.status);
+  }
+}
+
+docs {
+  You can combine filters:
+  - announcementId + status
+  - guardianId + status
+  Or use them individually
+}

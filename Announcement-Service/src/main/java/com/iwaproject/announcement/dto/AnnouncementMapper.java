@@ -2,6 +2,7 @@ package com.iwaproject.announcement.dto;
 
 import com.iwaproject.announcement.entities.Announcement;
 import com.iwaproject.announcement.entities.CareType;
+import com.iwaproject.announcement.entities.Image;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -28,7 +29,7 @@ public class AnnouncementMapper {
         }
 
         Announcement announcement = new Announcement();
-        announcement.setOwnerId(dto.getOwnerId());
+        announcement.setOwnerUsername(dto.getOwnerUsername());
         announcement.setTitle(dto.getTitle());
         announcement.setLocation(dto.getLocation());
         announcement.setDescription(dto.getDescription());
@@ -62,7 +63,7 @@ public class AnnouncementMapper {
 
         AnnouncementResponseDto dto = new AnnouncementResponseDto();
         dto.setId(announcement.getId());
-        dto.setOwnerId(announcement.getOwnerId());
+        dto.setOwnerUsername(announcement.getOwnerUsername());
         dto.setTitle(announcement.getTitle());
         dto.setLocation(announcement.getLocation());
         dto.setDescription(announcement.getDescription());
@@ -78,6 +79,62 @@ public class AnnouncementMapper {
         dto.setUrgentRequest(announcement.getUrgentRequest());
         dto.setStatus(announcement.getStatus());
         dto.setCreationDate(announcement.getCreationDate());
+
+        // Split images into public and specific based on isPrivate flag
+        if (announcement.getImages() != null) {
+            List<Image> publicImages = announcement.getImages().stream()
+                    .filter(image -> image.getIsPrivate() != null
+                            && !image.getIsPrivate())
+                    .collect(Collectors.toList());
+            List<Image> specificImages = announcement.getImages().stream()
+                    .filter(image -> image.getIsPrivate() != null
+                            && image.getIsPrivate())
+                    .collect(Collectors.toList());
+
+            dto.setPublicImages(toImageDtoList(publicImages));
+            dto.setSpecificImages(toImageDtoList(specificImages));
+        }
+
+        return dto;
+    }
+
+    /**
+     * Convert Announcement entity to AnnouncementResponseDto with images.
+     *
+     * @param announcement the announcement entity
+     * @param publicImages the list of public images
+     * @return the announcement response DTO
+     */
+    public AnnouncementResponseDto toResponseDto(
+            final Announcement announcement,
+            final List<Image> publicImages) {
+        if (announcement == null) {
+            return null;
+        }
+
+        AnnouncementResponseDto dto = new AnnouncementResponseDto();
+        dto.setId(announcement.getId());
+        dto.setOwnerUsername(announcement.getOwnerUsername());
+        dto.setTitle(announcement.getTitle());
+        dto.setLocation(announcement.getLocation());
+        dto.setDescription(announcement.getDescription());
+        dto.setSpecificInstructions(
+                announcement.getSpecificInstructions());
+        dto.setCareType(toCareTypeDto(announcement.getCareType()));
+        dto.setStartDate(announcement.getStartDate());
+        dto.setEndDate(announcement.getEndDate());
+        dto.setVisitFrequency(announcement.getVisitFrequency());
+        dto.setRemuneration(announcement.getRemuneration());
+        dto.setIdentityVerificationRequired(
+                announcement.getIdentityVerificationRequired());
+        dto.setUrgentRequest(announcement.getUrgentRequest());
+        dto.setStatus(announcement.getStatus());
+        dto.setCreationDate(announcement.getCreationDate());
+
+        // Add public images if provided
+        if (publicImages != null) {
+            dto.setPublicImages(toImageDtoList(publicImages));
+        }
 
         return dto;
     }
@@ -112,5 +169,38 @@ public class AnnouncementMapper {
         dto.setLabel(careType.getLabel());
 
         return dto;
+    }
+
+    /**
+     * Convert Image entity to ImageDto.
+     *
+     * @param image the image entity
+     * @return the image DTO
+     */
+    private ImageDto toImageDto(final Image image) {
+        if (image == null) {
+            return null;
+        }
+
+        ImageDto dto = new ImageDto();
+        dto.setId(image.getId());
+        dto.setImageUrl(image.getImageUrl());
+
+        return dto;
+    }
+
+    /**
+     * Convert list of Image entities to list of ImageDto.
+     *
+     * @param images the list of image entities
+     * @return the list of image DTOs
+     */
+    private List<ImageDto> toImageDtoList(final List<Image> images) {
+        if (images == null) {
+            return null;
+        }
+        return images.stream()
+                .map(this::toImageDto)
+                .collect(Collectors.toList());
     }
 }

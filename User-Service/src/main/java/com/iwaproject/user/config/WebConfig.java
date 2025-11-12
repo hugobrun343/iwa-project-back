@@ -1,14 +1,15 @@
 package com.iwaproject.user.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web MVC configuration.
- * Registers security interceptors.
+ * Web configuration for User Service.
  */
 @Configuration
+@RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
     /**
@@ -17,23 +18,13 @@ public class WebConfig implements WebMvcConfigurer {
     private final GatewaySecurityInterceptor gatewaySecurityInterceptor;
 
     /**
-     * Constructor for WebConfig.
+     * Add interceptors.
      *
-     * @param interceptor the gateway security interceptor
-     */
-    public WebConfig(final GatewaySecurityInterceptor interceptor) {
-        this.gatewaySecurityInterceptor = interceptor;
-    }
-
-    /**
-     * Add interceptors to the registry.
-     *
-     * @param registry the interceptor registry
+     * @param registry interceptor registry
      */
     @Override
     public void addInterceptors(final InterceptorRegistry registry) {
         registry.addInterceptor(gatewaySecurityInterceptor)
-                .addPathPatterns("/**")
-                .excludePathPatterns("/actuator/**");
+                .addPathPatterns("/api/**");
     }
 }
