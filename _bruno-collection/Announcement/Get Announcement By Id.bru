@@ -8,6 +8,9 @@ get {
   url: {{GATEWAY_URL}}/api/announcements/1
   body: none
   auth: bearer
+  headers {
+    X-Username: {{USERNAME}}
+  }
 }
 
 auth:bearer {
@@ -17,6 +20,9 @@ auth:bearer {
 script:post-response {
   if (res.status === 200) {
     console.log('✅ Announcement retrieved:', res.body.id);
+    console.log('Public images:', res.body.publicImages?.length || 0);
+    console.log('Specific images:', res.body.specificImages?.length || 0);
+    console.log('Full response:', JSON.stringify(res.body, null, 2));
   } else {
     console.error('❌ Announcement not found:', res.status);
   }

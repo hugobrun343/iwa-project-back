@@ -57,7 +57,45 @@ public class AnnouncementMapper {
      */
     public AnnouncementResponseDto toResponseDto(
             final Announcement announcement) {
-        return toResponseDto(announcement, null);
+        if (announcement == null) {
+            return null;
+        }
+
+        AnnouncementResponseDto dto = new AnnouncementResponseDto();
+        dto.setId(announcement.getId());
+        dto.setOwnerUsername(announcement.getOwnerUsername());
+        dto.setTitle(announcement.getTitle());
+        dto.setLocation(announcement.getLocation());
+        dto.setDescription(announcement.getDescription());
+        dto.setSpecificInstructions(
+                announcement.getSpecificInstructions());
+        dto.setCareType(toCareTypeDto(announcement.getCareType()));
+        dto.setStartDate(announcement.getStartDate());
+        dto.setEndDate(announcement.getEndDate());
+        dto.setVisitFrequency(announcement.getVisitFrequency());
+        dto.setRemuneration(announcement.getRemuneration());
+        dto.setIdentityVerificationRequired(
+                announcement.getIdentityVerificationRequired());
+        dto.setUrgentRequest(announcement.getUrgentRequest());
+        dto.setStatus(announcement.getStatus());
+        dto.setCreationDate(announcement.getCreationDate());
+
+        // Split images into public and specific based on isPrivate flag
+        if (announcement.getImages() != null) {
+            List<Image> publicImages = announcement.getImages().stream()
+                    .filter(image -> image.getIsPrivate() != null
+                            && !image.getIsPrivate())
+                    .collect(Collectors.toList());
+            List<Image> specificImages = announcement.getImages().stream()
+                    .filter(image -> image.getIsPrivate() != null
+                            && image.getIsPrivate())
+                    .collect(Collectors.toList());
+
+            dto.setPublicImages(toImageDtoList(publicImages));
+            dto.setSpecificImages(toImageDtoList(specificImages));
+        }
+
+        return dto;
     }
 
     /**

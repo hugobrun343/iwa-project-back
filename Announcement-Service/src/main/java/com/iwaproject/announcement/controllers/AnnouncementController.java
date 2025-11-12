@@ -6,6 +6,7 @@ import com.iwaproject.announcement.dto.AnnouncementResponseDto;
 import com.iwaproject.announcement.entities.Announcement;
 import com.iwaproject.announcement.entities.Announcement.AnnouncementStatus;
 import com.iwaproject.announcement.services.AnnouncementService;
+import com.iwaproject.announcement.services.KafkaLogService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,10 @@ public class AnnouncementController {
      * The announcement mapper.
      */
     private final AnnouncementMapper announcementMapper;
+    /**
+     * The Kafka log service.
+     */
+    private final KafkaLogService kafkaLogService;
 
     /**
      * Create a new announcement.
@@ -51,19 +56,57 @@ public class AnnouncementController {
     public ResponseEntity<AnnouncementResponseDto> createAnnouncement(
             @RequestHeader("X-Username") final String username,
             @RequestBody final AnnouncementRequestDto requestDto) {
+        kafkaLogService.info("AnnouncementController",
+                "=== CREATE ANNOUNCEMENT REQUEST === User: " + username
+                        + ", Title: " + (requestDto.getTitle() != null
+                        ? requestDto.getTitle() : "null")
+                        + ", CareTypeLabel: " + (requestDto.getCareTypeLabel() != null
+                        ? requestDto.getCareTypeLabel() : "null"));
+        
         try {
             // Set the owner username from the authenticated user
             requestDto.setOwnerUsername(username);
+            
+            kafkaLogService.debug("AnnouncementController",
+                    "Calling service to create announcement for user: "
+                            + username);
 
             Announcement createdAnnouncement =
                     announcementService
                             .createAnnouncementFromDto(requestDto);
+            
+            kafkaLogService.debug("AnnouncementController",
+                    "Announcement created by service. ID: "
+                            + (createdAnnouncement != null
+                            ? createdAnnouncement.getId() : "null"));
+            
             AnnouncementResponseDto responseDto =
                     announcementMapper.toResponseDto(createdAnnouncement);
+            
+            kafkaLogService.info("AnnouncementController",
+                    "Announcement created successfully. ID: "
+                            + createdAnnouncement.getId()
+                            + ", Owner: " + username
+                            + ", Public images: "
+                            + (requestDto.getPublicImages() != null
+                            ? requestDto.getPublicImages().size() : 0)
+                            + ", Specific images: "
+                            + (requestDto.getSpecificImages() != null
+                            ? requestDto.getSpecificImages().size() : 0));
+            
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(responseDto);
         } catch (IllegalArgumentException e) {
+            kafkaLogService.error("AnnouncementController",
+                    "Failed to create announcement for user: " + username
+                            + ", Error: " + e.getMessage(), e);
             return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            kafkaLogService.error("AnnouncementController",
+                    "Unexpected error creating announcement for user: "
+                            + username + ", Error: " + e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .build();
         }
     }
 
@@ -72,21 +115,35 @@ public class AnnouncementController {
      * PUT /api/announcements/{id}
      *
      * @param id the announcement id
-     * @param announcement the updated announcement data
+     * @param requestDto the updated announcement request DTO
      * @return the updated announcement
      */
     @PutMapping("/{id}")
     public ResponseEntity<AnnouncementResponseDto> updateAnnouncement(
             @PathVariable final Long id,
-            @RequestBody final Announcement announcement) {
+            @RequestBody final AnnouncementRequestDto requestDto) {
+        kafkaLogService.info("AnnouncementController",
+                "Updating announcement ID: " + id);
         try {
             Announcement updatedAnnouncement =
                     announcementService
-                            .updateAnnouncement(id, announcement);
+                            .updateAnnouncementFromDto(id, requestDto);
             AnnouncementResponseDto responseDto =
                     announcementMapper.toResponseDto(updatedAnnouncement);
+            
+            kafkaLogService.info("AnnouncementController",
+                    "Announcement updated successfully. ID: " + id
+                            + ", Public images: "
+                            + (requestDto.getPublicImages() != null
+                            ? requestDto.getPublicImages().size() : 0)
+                            + ", Specific images: "
+                            + (requestDto.getSpecificImages() != null
+                            ? requestDto.getSpecificImages().size() : 0));
+            
             return ResponseEntity.ok(responseDto);
         } catch (IllegalArgumentException e) {
+            kafkaLogService.error("AnnouncementController",
+                    "Failed to update announcement ID: " + id, e);
             return ResponseEntity.notFound().build();
         }
     }
@@ -103,14 +160,24 @@ public class AnnouncementController {
     public ResponseEntity<AnnouncementResponseDto> changeStatus(
             @PathVariable final Long id,
             @RequestParam final AnnouncementStatus status) {
+        kafkaLogService.info("AnnouncementController",
+                "Changing status of announcement ID: " + id
+                        + " to: " + status);
         try {
             Announcement updatedAnnouncement =
                     announcementService
                             .changeAnnouncementStatus(id, status);
             AnnouncementResponseDto responseDto =
                     announcementMapper.toResponseDto(updatedAnnouncement);
+            
+            kafkaLogService.info("AnnouncementController",
+                    "Announcement status changed successfully. ID: " + id
+                            + ", New status: " + status);
+            
             return ResponseEntity.ok(responseDto);
         } catch (IllegalArgumentException e) {
+            kafkaLogService.error("AnnouncementController",
+                    "Failed to change status of announcement ID: " + id, e);
             return ResponseEntity.notFound().build();
         }
     }
@@ -125,10 +192,18 @@ public class AnnouncementController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAnnouncement(
             @PathVariable final Long id) {
+        kafkaLogService.info("AnnouncementController",
+                "Deleting announcement ID: " + id);
         try {
             announcementService.deleteAnnouncement(id);
+            
+            kafkaLogService.info("AnnouncementController",
+                    "Announcement deleted successfully. ID: " + id);
+            
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
+            kafkaLogService.error("AnnouncementController",
+                    "Failed to delete announcement ID: " + id, e);
             return ResponseEntity.notFound().build();
         }
     }
@@ -145,13 +220,29 @@ public class AnnouncementController {
     public ResponseEntity<AnnouncementResponseDto> getById(
             @RequestHeader("X-Username") final String username,
             @PathVariable final Long id) {
+        kafkaLogService.debug("AnnouncementController",
+                "Getting announcement ID: " + id
+                        + " for user: " + username);
         try {
             Announcement announcement =
                     announcementService.getAnnouncementById(id, username);
             AnnouncementResponseDto responseDto =
                     announcementMapper.toResponseDto(announcement);
+            
+            kafkaLogService.debug("AnnouncementController",
+                    "Announcement retrieved successfully. ID: " + id
+                            + ", Public images: "
+                            + (responseDto.getPublicImages() != null
+                            ? responseDto.getPublicImages().size() : 0)
+                            + ", Specific images: "
+                            + (responseDto.getSpecificImages() != null
+                            ? responseDto.getSpecificImages().size() : 0));
+            
             return ResponseEntity.ok(responseDto);
         } catch (IllegalArgumentException e) {
+            kafkaLogService.warn("AnnouncementController",
+                    "Announcement not found. ID: " + id
+                            + ", User: " + username);
             return ResponseEntity.notFound().build();
         }
     }
