@@ -161,42 +161,62 @@ public class UserService {
     public User updateUserProfile(final String username,
             final Map<String, Object> updates) {
         log.info("Updating user profile for: {}", username);
+        log.debug("Update payload: {}", updates);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "User not found"));
 
         updates.forEach((key, value) -> {
+            log.debug("Processing update field: {} = {}", key, value);
             switch (key) {
                 case "firstName":
                     user.setFirstName((String) value);
+                    log.debug("Updated firstName to: {}", value);
                     break;
                 case "lastName":
                     user.setLastName((String) value);
+                    log.debug("Updated lastName to: {}", value);
+                    break;
+                case "email":
+                    String emailValue = (String) value;
+                    log.info("Updating email for user {}: {} -> {}", 
+                            username, user.getEmail(), emailValue);
+                    user.setEmail(emailValue);
+                    log.debug("Updated email to: {}", emailValue);
                     break;
                 case "phoneNumber":
                     user.setPhoneNumber((String) value);
+                    log.debug("Updated phoneNumber to: {}", value);
                     break;
                 case "location":
                     user.setLocation((String) value);
+                    log.debug("Updated location to: {}", value);
                     break;
                 case "description":
                     user.setDescription((String) value);
+                    log.debug("Updated description to: {}", value);
                     break;
                 case "profilePhoto":
                     user.setProfilePhoto((String) value);
+                    log.debug("Updated profilePhoto to: {}", value);
                     break;
                 case "identityVerification":
                     user.setIdentityVerification((Boolean) value);
+                    log.debug("Updated identityVerification to: {}", value);
                     break;
                 case "preferences":
                     user.setPreferences((String) value);
+                    log.debug("Updated preferences to: {}", value);
                     break;
                 default:
                     log.warn("Unknown field for update: {}", key);
                     break;
             }
         });
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        log.info("User profile updated successfully. Email after save: {}", 
+                savedUser.getEmail());
+        return savedUser;
     }
 
     /**
@@ -247,6 +267,9 @@ public class UserService {
         user.setLastName((String) lastName);
 
         // Optional fields
+        if (payload.containsKey("email")) {
+            user.setEmail((String) payload.get("email"));
+        }
         if (payload.containsKey("phoneNumber")) {
             user.setPhoneNumber((String) payload.get("phoneNumber"));
         }

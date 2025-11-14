@@ -61,6 +61,12 @@ public class User {
     private String lastName;
 
     /**
+     * User's email.
+     */
+    @Column(name = "email", length = MAX_TEXT_LENGTH)
+    private String email;
+
+    /**
      * User's phone number.
      */
     @Column(name = "phone_number", length = MAX_PHONE_LENGTH)
