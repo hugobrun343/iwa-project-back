@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
 
 /**
  * Reactive Security configuration for Spring Cloud Gateway.
@@ -30,6 +31,20 @@ public class SecurityConfig {
     };
 
     /**
+     * CORS configuration source bean.
+     */
+    private final CorsConfigurationSource corsConfigurationSource;
+
+    /**
+     * Constructor with CORS configuration source.
+     *
+     * @param corsConfigurationSource the CORS configuration source
+     */
+    public SecurityConfig(final CorsConfigurationSource corsConfigurationSource) {
+        this.corsConfigurationSource = corsConfigurationSource;
+    }
+
+    /**
      * Configure reactive security filter chain.
      *
      * @param http the ServerHttpSecurity to modify
@@ -42,10 +57,13 @@ public class SecurityConfig {
         http
             // Disable CSRF for stateless API
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
+            
+            // Enable CORS with configuration source
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
 
             // Configure authorization rules
             .authorizeExchange(auth -> auth
-                // Allow pre-flight CORS requests
+                // Allow pre-flight CORS requests (OPTIONS)
                 .pathMatchers(HttpMethod.OPTIONS).permitAll()
                 // Public endpoints (no authentication required)
                 .pathMatchers(PUBLIC_PATHS).permitAll()
