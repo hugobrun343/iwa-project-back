@@ -1,0 +1,34 @@
+meta {
+  name: Create Subscription
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/payments/create-subscription
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "customerId": "{{STRIPE_CUSTOMER_ID}}",
+    "priceId": "price_1234567890",
+    "paymentMethodId": "pm_1234567890"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    console.log('✅ Subscription created successfully');
+    console.log('📋 Subscription ID:', res.body.subscriptionId);
+    console.log('🔑 Client Secret:', res.body.clientSecret);
+    bruno.setVar('SUBSCRIPTION_ID', res.body.subscriptionId);
+  } else {
+    console.error('❌ Failed to create subscription:', res.status, res.body);
+  }
+}

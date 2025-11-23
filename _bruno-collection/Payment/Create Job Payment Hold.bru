@@ -1,0 +1,37 @@
+meta {
+  name: Create Job Payment Hold
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/payments/create-hold
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "amount": 10000,
+    "currency": "eur",
+    "customerId": "{{STRIPE_CUSTOMER_ID}}",
+    "annonceId": "{{ANNOUNCEMENT_ID}}",
+    "description": "Payment for job announcement"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    console.log('✅ Job payment hold created successfully');
+    console.log('💳 Payment Intent ID:', res.body.paymentIntentId);
+    console.log('💰 Amount:', res.body.amount / 100, res.body.currency);
+    console.log('🔑 Client Secret:', res.body.clientSecret);
+    bruno.setVar('PAYMENT_INTENT_ID', res.body.paymentIntentId);
+  } else {
+    console.error('❌ Failed to create job payment hold:', res.status, res.body);
+  }
+}

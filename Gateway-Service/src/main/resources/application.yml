@@ -87,7 +87,7 @@ management:
 # CORS configuration
 cors:
   allowed:
-    origins: ${CORS_GATEWAY_ORIGINS:http://localhost:3000,http://localhost:8085}
+    origins: ${CORS_GATEWAY_ORIGINS:http://localhost:3000,http://localhost:8085,http://192.168.72.194:8085,http://192.168.72.194:*}
 
 # Gateway secret for service-to-service authentication
 gateway:

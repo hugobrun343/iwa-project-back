@@ -1,0 +1,33 @@
+meta {
+  name: Release Payment
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/payments/release
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "paymentIntentId": "{{PAYMENT_INTENT_ID}}",
+    "guardianId": "{{GUARDIAN_ID}}",
+    "amount": 10000
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Payment released successfully');
+    console.log('💸 Transfer ID:', res.body.transferId);
+    console.log('💰 Amount:', res.body.amount / 100, res.body.currency);
+  } else {
+    console.error('❌ Failed to release payment:', res.status, res.body);
+  }
+}

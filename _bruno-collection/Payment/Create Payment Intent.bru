@@ -1,0 +1,36 @@
+meta {
+  name: Create Payment Intent
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/payments/create-payment-intent
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "amount": 5000,
+    "currency": "eur",
+    "customerId": "{{STRIPE_CUSTOMER_ID}}",
+    "description": "Test payment intent"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    console.log('✅ Payment intent created successfully');
+    console.log('💳 Payment Intent ID:', res.body.paymentIntentId);
+    console.log('💰 Amount:', res.body.amount / 100, res.body.currency);
+    console.log('🔑 Client Secret:', res.body.clientSecret);
+    bruno.setVar('PAYMENT_INTENT_ID', res.body.paymentIntentId);
+  } else {
+    console.error('❌ Failed to create payment intent:', res.status, res.body);
+  }
+}

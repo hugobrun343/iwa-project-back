@@ -380,20 +380,17 @@ services:
 
   payment-service:
     build:
-      context: .
-      dockerfile: ./Payment-Service/Dockerfile
+      context: ./Payment-Service
+      dockerfile: ./Dockerfile
     container_name: payment-service
     environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://payment-postgres:5432/payment_db
-      SPRING_DATASOURCE_USERNAME: payment_user
-      SPRING_DATASOURCE_PASSWORD: payment_password
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SERVER_PORT: ${PAYMENT_SERVICE_PORT}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      GATEWAY_SECRET: ${GATEWAY_SECRET}
+      NODE_ENV: production
+      PORT: ${PAYMENT_SERVICE_PORT:-8088}
+      DATABASE_URL: postgresql://payment_user:payment_password@payment-postgres:5432/payment_db
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
     ports:
-      - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
+      - "${PAYMENT_SERVICE_PORT:-8088}:${PAYMENT_SERVICE_PORT:-8088}"
     restart: unless-stopped
     depends_on:
       payment-postgres:
