@@ -1,8 +1,9 @@
 package com.iwaproject.announcement.services;
 
-import com.iwaproject.announcement.dto.AnnouncementRequestDto;
 import com.iwaproject.announcement.dto.AnnouncementMapper;
+import com.iwaproject.announcement.dto.AnnouncementRequestDto;
 import com.iwaproject.announcement.dto.AnnouncementResponseDto;
+import com.iwaproject.announcement.dto.CareTypeDto;
 import com.iwaproject.announcement.dto.ImageDto;
 import com.iwaproject.announcement.entities.Announcement;
 import com.iwaproject.announcement.entities.Announcement.AnnouncementStatus;
@@ -392,10 +393,10 @@ public class AnnouncementService {
         // Save public images (isPrivate = false)
         if (requestDto.getPublicImages() != null) {
             for (ImageDto imageDto : requestDto.getPublicImages()) {
-                if (imageDto != null && imageDto.getImageUrl() != null) {
+                if (imageDto != null && imageDto.getImageBlob() != null) {
                     Image image = new Image();
                     image.setAnnouncement(announcement);
-                    image.setImageUrl(imageDto.getImageUrl());
+                    image.setImageBlob(imageDto.getImageBlob());
                     image.setIsPrivate(false);
                     imagesToSave.add(image);
                     publicImagesCount++;
@@ -406,10 +407,10 @@ public class AnnouncementService {
         // Save specific images (isPrivate = true)
         if (requestDto.getSpecificImages() != null) {
             for (ImageDto imageDto : requestDto.getSpecificImages()) {
-                if (imageDto != null && imageDto.getImageUrl() != null) {
+                if (imageDto != null && imageDto.getImageBlob() != null) {
                     Image image = new Image();
                     image.setAnnouncement(announcement);
-                    image.setImageUrl(imageDto.getImageUrl());
+                    image.setImageBlob(imageDto.getImageBlob());
                     image.setIsPrivate(true);
                     imagesToSave.add(image);
                     specificImagesCount++;
@@ -575,6 +576,19 @@ public class AnnouncementService {
                     return announcementMapper.toResponseDto(
                             announcement, publicImages);
                 })
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Get all available care types.
+     * @return list of care type DTOs
+     */
+    @Transactional(readOnly = true)
+    public List<CareTypeDto> getAllCareTypes() {
+        List<CareType> careTypes = careTypeRepository.findAll();
+        return careTypes.stream()
+                .map(careType ->
+                        new CareTypeDto(careType.getId(), careType.getLabel()))
                 .collect(java.util.stream.Collectors.toList());
     }
 

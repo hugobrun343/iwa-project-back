@@ -20,6 +20,18 @@ const adapter = require('../db/prismaAdapter');
 const { repos, generateSimulatedTransferId, TEST_GUARDIAN_EMAIL } = adapter;
 const { TransactionAnnonceRepo, UtilisateurStripeRepo, AnnonceRepo, UtilisateurRepo } = repos;
 
+type PayoutSummary = {
+  paymentId: string;
+  jobId?: number | null;
+  amount: number | null;
+  currency: string;
+  status: string;
+  created: string | null;
+  source?: 'job_payment' | 'subscription';
+  invoiceId?: string | null;
+  subscriptionId?: string | null;
+};
+
 export async function getConfig() {
   return { publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_YOUR_PUBLISHABLE_KEY' };
 }
@@ -32,7 +44,7 @@ export async function createCustomer(email: string) {
 export async function getCustomerInfo(customerId: string) {
   const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
   const subs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 5, expand: ['data.items.data.price'] });
-  const activeLike = subs.data.find(s => ['active', 'trialing', 'past_due', 'incomplete'].includes(s.status));
+  const activeLike = subs.data.find((s: Stripe.Subscription) => ['active', 'trialing', 'past_due', 'incomplete'].includes(s.status));
   const activeSubscription = activeLike
     ? {
       id: activeLike.id,
@@ -180,47 +192,125 @@ export async function releasePaymentToGuardian(paymentId: string) {
 }
 
 export async function listPayouts(userId?: string, limit = 10) {
-  if (userId) {
-    // Query our minimal DB mapping (TransactionAnnonce) to find transactions for this owner
-    try {
-      const txs = await TransactionAnnonceRepo.findByOwnerStripeId(userId);
-      const detailed = await Promise.all(txs.map(async (t: any) => {
-        // Attempt to retrieve payment intent to enrich with amount/status
-        try {
-          const pi = await stripe.paymentIntents.retrieve(t.transactionId);
-          // Check if this payment has been refunded
-          let status: string = (pi as any).status || 'unknown';
-          if (status === 'succeeded') {
-            try {
-              const refunds = await stripe.refunds.list({ payment_intent: t.transactionId, limit: 1 });
-              if (refunds.data && refunds.data.length > 0) {
-                status = 'refunded';
-              }
-            } catch (refundErr) {
-              // If refund check fails, keep the original status
-              // eslint-disable-next-line no-console
-              console.warn('Failed to check refunds for', t.transactionId, refundErr);
-            }
-          }
-          return {
-            paymentId: t.transactionId,
-            jobId: t.annonceId,
-            amount: (pi as any).amount || null,
-            currency: (pi as any).currency || 'eur',
-            status,
-            created: (pi as any).created ? new Date(((pi as any).created) * 1000).toISOString() : null,
-          };
-        } catch (err) {
-          return { paymentId: t.transactionId, jobId: t.annonceId, amount: null, currency: 'eur', status: 'unknown' };
+  if (!userId) {
+    const payouts = await stripe.payouts.list({ limit });
+    return { payouts: payouts.data };
+  }
+
+  let resolvedStripeCustomerId: string | undefined = userId;
+
+  // If a numeric user id is provided, attempt to resolve the Stripe customer id
+  if (userId && !userId.startsWith('cus_')) {
+    const parsed = Number(userId);
+    if (!Number.isNaN(parsed)) {
+      try {
+        const userStripe = await UtilisateurStripeRepo.findByUserId(parsed);
+        if (userStripe?.stripeCustomerId) {
+          resolvedStripeCustomerId = userStripe.stripeCustomerId;
         }
-      }));
-      return { payouts: detailed };
-    } catch (err) {
-      return { payouts: [], note: 'Error querying local transactions', error: (err as any)?.message };
+      } catch (err) {
+        console.warn('Failed to resolve Stripe customer for userId', userId, err);
+      }
     }
   }
-  const payouts = await stripe.payouts.list({ limit });
-  return { payouts: payouts.data };
+
+  if (!resolvedStripeCustomerId) {
+    return { payouts: [], note: 'Unable to resolve Stripe customer for provided userId' };
+  }
+
+  let note: string | undefined;
+  let jobPayouts: PayoutSummary[] = [];
+  try {
+    const txs = await TransactionAnnonceRepo.findByOwnerStripeId(resolvedStripeCustomerId);
+    jobPayouts = await Promise.all(txs.map(async (t: any) => {
+      try {
+        const pi = await stripe.paymentIntents.retrieve(t.transactionId);
+        let status: string = (pi as any).status || 'unknown';
+        if (status === 'succeeded') {
+          try {
+            const refunds = await stripe.refunds.list({ payment_intent: t.transactionId, limit: 1 });
+            if (refunds.data && refunds.data.length > 0) {
+              status = 'refunded';
+            }
+          } catch (refundErr) {
+            console.warn('Failed to check refunds for', t.transactionId, refundErr);
+          }
+        }
+        return {
+          paymentId: t.transactionId,
+          jobId: t.annonceId,
+          amount: typeof (pi as any).amount === 'number' ? (pi as any).amount : null,
+          currency: (pi as any).currency || 'eur',
+          status,
+          created: (pi as any).created ? new Date(((pi as any).created) * 1000).toISOString() : null,
+          source: 'job_payment' as const,
+        };
+      } catch (err) {
+        return { paymentId: t.transactionId, jobId: t.annonceId, amount: null, currency: 'eur', status: 'unknown', created: null, source: 'job_payment' as const };
+      }
+    }));
+  } catch (err: any) {
+    note = 'Error querying local transactions';
+    console.error('Transaction lookup failed for payouts', err);
+  }
+
+  const { payouts: subscriptionPayouts, note: subscriptionNote } = await collectSubscriptionPayouts(resolvedStripeCustomerId, limit);
+  if (subscriptionNote) {
+    note = note ? `${note}; ${subscriptionNote}` : subscriptionNote;
+  }
+
+  const payouts = mergePayouts(jobPayouts, subscriptionPayouts);
+
+  return note ? { payouts, note } : { payouts };
+}
+
+function mergePayouts(jobPayouts: PayoutSummary[], subscriptionPayouts: PayoutSummary[]): PayoutSummary[] {
+  const merged: PayoutSummary[] = [];
+  const seen = new Set<string>();
+
+  [...jobPayouts, ...subscriptionPayouts].forEach((payout) => {
+    if (payout.paymentId && seen.has(payout.paymentId)) return;
+    if (payout.paymentId) seen.add(payout.paymentId);
+    merged.push(payout);
+  });
+
+  return merged;
+}
+
+async function collectSubscriptionPayouts(customerId: string, limit: number): Promise<{ payouts: PayoutSummary[]; note?: string }> {
+  try {
+    const invoices = await stripe.invoices.list({
+      customer: customerId,
+      limit,
+      expand: ['data.payment_intent'],
+    });
+
+    const payouts: PayoutSummary[] = invoices.data
+      .filter((invoice: Stripe.Invoice) => Boolean(invoice.subscription))
+      .map((invoice: Stripe.Invoice) => {
+        const paymentIntent = typeof invoice.payment_intent === 'string' ? null : invoice.payment_intent as Stripe.PaymentIntent | null;
+        const createdSeconds = paymentIntent?.created ?? invoice.created ?? null;
+        const status = paymentIntent?.status || invoice.status || 'unknown';
+        const amount = paymentIntent?.amount_received ?? invoice.amount_paid ?? paymentIntent?.amount ?? null;
+
+        return {
+          paymentId: paymentIntent?.id ?? invoice.id,
+          jobId: null,
+          amount: typeof amount === 'number' ? amount : null,
+          currency: paymentIntent?.currency ?? invoice.currency ?? 'eur',
+          status: typeof status === 'string' ? status : 'unknown',
+          created: createdSeconds ? new Date(createdSeconds * 1000).toISOString() : null,
+          source: 'subscription',
+          invoiceId: invoice.id,
+          subscriptionId: typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id ?? null,
+        };
+      });
+
+    return { payouts };
+  } catch (err) {
+    console.warn('Failed to collect subscription payouts for customer', customerId, err);
+    return { payouts: [], note: 'Unable to retrieve subscription payouts from Stripe' };
+  }
 }
 
 export async function listTransfersForGuardian(guardianId: string, limit = 10) {

@@ -3,6 +3,7 @@ package com.iwaproject.announcement.controllers;
 import com.iwaproject.announcement.dto.AnnouncementMapper;
 import com.iwaproject.announcement.dto.AnnouncementRequestDto;
 import com.iwaproject.announcement.dto.AnnouncementResponseDto;
+import com.iwaproject.announcement.dto.CareTypeDto;
 import com.iwaproject.announcement.entities.Announcement;
 import com.iwaproject.announcement.entities.Announcement.AnnouncementStatus;
 import com.iwaproject.announcement.services.AnnouncementService;
@@ -289,6 +290,20 @@ public class AnnouncementController {
         List<AnnouncementResponseDto> responseDtos =
                 announcementMapper.toResponseDtoList(announcements);
         return ResponseEntity.ok(responseDtos);
+    }
+
+    /**
+     * Get the list of available care types.
+     * GET /api/announcements/care-types
+     *
+     * @return list of care types
+     */
+    @GetMapping("/care-types")
+    public ResponseEntity<List<CareTypeDto>> getCareTypes() {
+        kafkaLogService.debug("AnnouncementController",
+                "Fetching care types list");
+        List<CareTypeDto> careTypes = announcementService.getAllCareTypes();
+        return ResponseEntity.ok(careTypes);
     }
 
     /**

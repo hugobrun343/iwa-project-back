@@ -17,8 +17,8 @@ public class ImageDto {
     private Long id;
 
     /**
-     * Image URL.
+     * Image blob data encoded by Jackson as base64 in JSON payloads.
      */
-    private String imageUrl;
+    private byte[] imageBlob;
 }
 
