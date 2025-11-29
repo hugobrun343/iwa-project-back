@@ -1,0 +1,27 @@
+meta {
+  name: Get Prices
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/payments/prices
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Prices retrieved successfully');
+    console.log('💰 Number of prices:', res.body.prices?.length || 0);
+    if (res.body.prices && res.body.prices.length > 0) {
+      console.log('📋 First price:', res.body.prices[0]);
+    }
+  } else {
+    console.error('❌ Failed to get prices:', res.status, res.body);
+  }
+}

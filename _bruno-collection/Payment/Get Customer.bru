@@ -1,0 +1,24 @@
+meta {
+  name: Get Customer
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/payments/customer/{{STRIPE_CUSTOMER_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Customer retrieved successfully');
+    console.log('👤 Customer:', res.body);
+  } else {
+    console.error('❌ Failed to get customer:', res.status, res.body);
+  }
+}

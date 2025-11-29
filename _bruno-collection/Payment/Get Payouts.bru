@@ -1,0 +1,31 @@
+meta {
+  name: Get Payouts
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/payments/payouts?userId={{USER_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+params:query {
+  userId: {{USER_ID}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Payouts retrieved successfully');
+    console.log('💰 Number of payouts:', res.body.payouts?.length || 0);
+    if (res.body.payouts && res.body.payouts.length > 0) {
+      console.log('📋 First payout:', res.body.payouts[0]);
+    }
+  } else {
+    console.error('❌ Failed to get payouts:', res.status, res.body);
+  }
+}

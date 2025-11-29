@@ -1,0 +1,38 @@
+meta {
+  name: Get User Payments
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/payments/user/payments?userId={{USER_ID}}&limit=50
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+params:query {
+  userId: {{USER_ID}}
+  limit: 50
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ User payments retrieved successfully');
+    console.log('💰 Number of payments:', res.body.count);
+    if (res.body.payments && res.body.payments.length > 0) {
+      console.log('📋 First payment:', res.body.payments[0]);
+      console.log('💳 Payment ID:', res.body.payments[0].paymentId);
+      console.log('💰 Amount:', res.body.payments[0].amount / 100, res.body.payments[0].currency);
+      console.log('📊 Status:', res.body.payments[0].status);
+    } else {
+      console.log('ℹ️ No payments found for this user');
+    }
+  } else {
+    console.error('❌ Failed to get user payments:', res.status, res.body);
+  }
+}
+

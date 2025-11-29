@@ -1,0 +1,24 @@
+meta {
+  name: Health Check
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/payments/config
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Payment Service is running');
+    console.log('📚 Message:', res.body.message);
+  } else {
+    console.error('❌ Payment Service health check failed:', res.status);
+  }
+}

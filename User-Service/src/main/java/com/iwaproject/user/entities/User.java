@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -61,6 +63,12 @@ public class User {
     private String lastName;
 
     /**
+     * User's email.
+     */
+    @Column(name = "email", length = MAX_TEXT_LENGTH)
+    private String email;
+
+    /**
      * User's phone number.
      */
     @Column(name = "phone_number", length = MAX_PHONE_LENGTH)
@@ -79,10 +87,11 @@ public class User {
     private String description;
 
     /**
-     * User's profile photo URL.
+     * User's profile photo binary data.
      */
-    @Column(name = "profile_photo", length = MAX_DESCRIPTION_LENGTH)
-    private String profilePhoto;
+    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column(name = "profile_photo", columnDefinition = "BYTEA")
+    private byte[] profilePhoto;
 
     /**
      * Identity verification status.

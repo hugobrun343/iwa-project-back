@@ -1,0 +1,31 @@
+meta {
+  name: Cancel Subscription
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/payments/cancel-subscription
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "subscriptionId": "{{SUBSCRIPTION_ID}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Subscription cancelled successfully');
+    console.log('📋 Subscription ID:', res.body.subscriptionId);
+    console.log('📊 Status:', res.body.status);
+  } else {
+    console.error('❌ Failed to cancel subscription:', res.status, res.body);
+  }
+}

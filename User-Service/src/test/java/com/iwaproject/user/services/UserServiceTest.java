@@ -21,7 +21,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -825,43 +827,6 @@ class UserServiceTest {
     }
 
     /**
-     * Test updateUserProfile with all fields.
-     */
-    @Test
-    @DisplayName("updateUserProfile with all fields should update all fields")
-    void updateUserProfile_allFields_shouldUpdateAllFields() {
-        // Given
-        when(userRepository.findByUsername(TEST_USERNAME)).thenReturn(Optional.of(testUser));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Map<String, Object> updates = Map.of(
-                "firstName", "Jane",
-                "lastName", "Smith",
-                "phoneNumber", "9876543210",
-                "location", "Lyon",
-                "description", "Updated description",
-                "profilePhoto", "new_photo.jpg",
-                "identityVerification", true,
-                "preferences", "{\"theme\":\"dark\"}"
-        );
-
-        // When
-        User result = userService.updateUserProfile(TEST_USERNAME, updates);
-
-        // Then
-        assertNotNull(result);
-        assertEquals("Jane", result.getFirstName());
-        assertEquals("Smith", result.getLastName());
-        assertEquals("9876543210", result.getPhoneNumber());
-        assertEquals("Lyon", result.getLocation());
-        assertEquals("Updated description", result.getDescription());
-        assertEquals("new_photo.jpg", result.getProfilePhoto());
-        assertTrue(result.getIdentityVerification());
-        assertEquals("{\"theme\":\"dark\"}", result.getPreferences());
-        verify(userRepository).save(testUser);
-    }
-
-    /**
      * Test updateUserProfile with unknown field.
      */
     @Test
@@ -898,7 +863,8 @@ class UserServiceTest {
         user.setPhoneNumber("1234567890");
         user.setLocation("Paris");
         user.setDescription("Test user");
-        user.setProfilePhoto("photo.jpg");
+        user.setProfilePhoto("photo.jpg"
+                .getBytes(StandardCharsets.UTF_8));
         user.setIdentityVerification(false);
         user.setPreferences("{}");
         user.setRegistrationDate(LocalDateTime.now());

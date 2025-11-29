@@ -1,0 +1,26 @@
+meta {
+  name: Get Payment
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/payments/{{PAYMENT_INTENT_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Payment retrieved successfully');
+    console.log('💳 Payment:', res.body);
+    console.log('📊 Status:', res.body.status);
+    console.log('💰 Amount:', res.body.amount / 100, res.body.currency);
+  } else {
+    console.error('❌ Failed to get payment:', res.status, res.body);
+  }
+}

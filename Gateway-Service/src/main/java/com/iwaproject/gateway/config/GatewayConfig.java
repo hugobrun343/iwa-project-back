@@ -31,7 +31,7 @@ public class GatewayConfig {
   @Value("${RATING_SERVICE_URL:http://localhost:8086}")
   private String ratingServiceUrl;
 
-  @Value("${PAYMENT_SERVICE_URL:http://localhost:8087}")
+  @Value("${PAYMENT_SERVICE_URL:http://localhost:8088}")
   private String paymentServiceUrl;
 
   /**
