@@ -177,7 +177,8 @@ public class UserController {
                 + ", phoneNumber=" + dto.getPhoneNumber()
                 + ", location=" + dto.getLocation()
                 + ", description=" + dto.getDescription()
-                + ", profilePhoto=" + dto.getProfilePhoto()
+                + ", profilePhoto=" + formatProfilePhotoLog(
+                        dto.getProfilePhoto())
                 + ", identityVerification=" + dto.getIdentityVerification()
                 + ", preferences=" + dto.getPreferences()
                 + ", registrationDate=" + dto.getRegistrationDate());
@@ -433,5 +434,18 @@ public class UserController {
         dto.setIdentityVerification(user.getIdentityVerification());
         dto.setRegistrationDate(user.getRegistrationDate());
         return dto;
+    }
+
+    /**
+     * Provide readable info about profile photo contents for logs.
+     *
+     * @param data profile photo bytes
+     * @return readable description
+     */
+    private String formatProfilePhotoLog(final byte[] data) {
+        if (data == null) {
+            return "null";
+        }
+        return data.length + " bytes";
     }
 }

@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -197,8 +198,10 @@ public class UserService {
                     log.debug("Updated description to: {}", value);
                     break;
                 case "profilePhoto":
-                    user.setProfilePhoto((String) value);
-                    log.debug("Updated profilePhoto to: {}", value);
+                    user.setProfilePhoto(decodeProfilePhoto(value));
+                    log.debug("Updated profilePhoto ({} bytes)",
+                            user.getProfilePhoto() != null
+                                    ? user.getProfilePhoto().length : 0);
                     break;
                 case "identityVerification":
                     user.setIdentityVerification((Boolean) value);
@@ -280,7 +283,8 @@ public class UserService {
             user.setDescription((String) payload.get("description"));
         }
         if (payload.containsKey("profilePhoto")) {
-            user.setProfilePhoto((String) payload.get("profilePhoto"));
+            user.setProfilePhoto(
+                    decodeProfilePhoto(payload.get("profilePhoto")));
         }
         if (payload.containsKey("identityVerification")) {
             Object iv = payload.get("identityVerification");
@@ -389,5 +393,35 @@ public class UserService {
                 .map(us -> UserSpecialisationDTO.fromSpecialisation(
                         us.getSpecialisation().getLabel()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Convert various incoming payload representations to byte array.
+     *
+     * @param value incoming value (String base64 or byte[])
+     * @return byte[] or null if unsupported
+     */
+    private byte[] decodeProfilePhoto(final Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof byte[]) {
+            return (byte[]) value;
+        }
+        if (value instanceof String) {
+            String stringValue = (String) value;
+            if (stringValue.isBlank()) {
+                return null;
+            }
+            try {
+                return Base64.getDecoder().decode(stringValue);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid base64 profile photo payload", e);
+                return null;
+            }
+        }
+        log.warn("Unsupported profile photo payload type: {}",
+                value.getClass());
+        return null;
     }
 }
