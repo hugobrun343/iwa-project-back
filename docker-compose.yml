@@ -244,10 +244,12 @@ services:
       KC_HTTP_ENABLED: true
     ports:
       - "8080:8080"
+    volumes:
+      - ./keycloak.json:/opt/keycloak/data/import/keycloak.json:ro
     depends_on:
       keycloak-postgres:
         condition: service_healthy
-    command: start-dev
+    command: start --optimized --import-realm
     networks:
       - iwa-network
 

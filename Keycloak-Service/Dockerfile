@@ -37,6 +37,9 @@ COPY --from=builder /opt/keycloak/ /opt/keycloak/
 
 WORKDIR /opt/keycloak
 
+# Copy Keycloak realm configuration file
+COPY keycloak.json /opt/keycloak/data/import/keycloak.json
+
 # Set the same build-time options for runtime consistency
 ENV KC_DB=postgres
 ENV KC_HEALTH_ENABLED=true
@@ -44,4 +47,4 @@ ENV KC_METRICS_ENABLED=true
 
 # Set the entrypoint and default command
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
-CMD ["start", "--optimized"]
+CMD ["start", "--optimized", "--import-realm"]
