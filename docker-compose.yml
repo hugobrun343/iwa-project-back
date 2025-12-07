@@ -228,6 +228,57 @@ services:
 # endregion
 # region Services
 
+  seeder-service:
+    build:
+      context: .
+      dockerfile: ./Seeder-Service/Dockerfile
+    container_name: seeder-service
+    environment:
+      # User DB
+      USER_DB_HOST: user-postgres
+      USER_DB_PORT: 5432
+      USER_DB_NAME: user_db
+      USER_DB_USER: user_user
+      USER_DB_PASSWORD: user_password
+      # Announcement DB
+      ANNOUNCEMENT_DB_HOST: announcement-postgres
+      ANNOUNCEMENT_DB_PORT: 5432
+      ANNOUNCEMENT_DB_NAME: announcement_db
+      ANNOUNCEMENT_DB_USER: announcement_user
+      ANNOUNCEMENT_DB_PASSWORD: announcement_password
+      # Application DB
+      APPLICATION_DB_HOST: application-postgres
+      APPLICATION_DB_PORT: 5432
+      APPLICATION_DB_NAME: application_db
+      APPLICATION_DB_USER: application_user
+      APPLICATION_DB_PASSWORD: application_password
+      # Chat DB
+      CHAT_DB_HOST: chat-postgres
+      CHAT_DB_PORT: 5432
+      CHAT_DB_NAME: chat_db
+      CHAT_DB_USER: chat_user
+      CHAT_DB_PASSWORD: chat_password
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+      announcement-postgres:
+        condition: service_healthy
+      application-postgres:
+        condition: service_healthy
+      chat-postgres:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      announcement-service:
+        condition: service_started
+      application-service:
+        condition: service_started
+      chat-service:
+        condition: service_started
+    networks:
+      - iwa-network
+    restart: "no"  # Only run once, don't restart
+
   keycloak:
     build:
       context: .
