@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -161,42 +162,64 @@ public class UserService {
     public User updateUserProfile(final String username,
             final Map<String, Object> updates) {
         log.info("Updating user profile for: {}", username);
+        log.debug("Update payload: {}", updates);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "User not found"));
 
         updates.forEach((key, value) -> {
+            log.debug("Processing update field: {} = {}", key, value);
             switch (key) {
                 case "firstName":
                     user.setFirstName((String) value);
+                    log.debug("Updated firstName to: {}", value);
                     break;
                 case "lastName":
                     user.setLastName((String) value);
+                    log.debug("Updated lastName to: {}", value);
+                    break;
+                case "email":
+                    String emailValue = (String) value;
+                    log.info("Updating email for user {}: {} -> {}", 
+                            username, user.getEmail(), emailValue);
+                    user.setEmail(emailValue);
+                    log.debug("Updated email to: {}", emailValue);
                     break;
                 case "phoneNumber":
                     user.setPhoneNumber((String) value);
+                    log.debug("Updated phoneNumber to: {}", value);
                     break;
                 case "location":
                     user.setLocation((String) value);
+                    log.debug("Updated location to: {}", value);
                     break;
                 case "description":
                     user.setDescription((String) value);
+                    log.debug("Updated description to: {}", value);
                     break;
                 case "profilePhoto":
-                    user.setProfilePhoto((String) value);
+                    user.setProfilePhoto(decodeProfilePhoto(value));
+                    log.debug("Updated profilePhoto ({} bytes)",
+                            user.getProfilePhoto() != null
+                                    ? user.getProfilePhoto().length : 0);
                     break;
                 case "identityVerification":
                     user.setIdentityVerification((Boolean) value);
+                    log.debug("Updated identityVerification to: {}", value);
                     break;
                 case "preferences":
                     user.setPreferences((String) value);
+                    log.debug("Updated preferences to: {}", value);
                     break;
                 default:
                     log.warn("Unknown field for update: {}", key);
                     break;
             }
         });
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        log.info("User profile updated successfully. Email after save: {}", 
+                savedUser.getEmail());
+        return savedUser;
     }
 
     /**
@@ -247,6 +270,9 @@ public class UserService {
         user.setLastName((String) lastName);
 
         // Optional fields
+        if (payload.containsKey("email")) {
+            user.setEmail((String) payload.get("email"));
+        }
         if (payload.containsKey("phoneNumber")) {
             user.setPhoneNumber((String) payload.get("phoneNumber"));
         }
@@ -257,7 +283,8 @@ public class UserService {
             user.setDescription((String) payload.get("description"));
         }
         if (payload.containsKey("profilePhoto")) {
-            user.setProfilePhoto((String) payload.get("profilePhoto"));
+            user.setProfilePhoto(
+                    decodeProfilePhoto(payload.get("profilePhoto")));
         }
         if (payload.containsKey("identityVerification")) {
             Object iv = payload.get("identityVerification");
@@ -366,5 +393,35 @@ public class UserService {
                 .map(us -> UserSpecialisationDTO.fromSpecialisation(
                         us.getSpecialisation().getLabel()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Convert various incoming payload representations to byte array.
+     *
+     * @param value incoming value (String base64 or byte[])
+     * @return byte[] or null if unsupported
+     */
+    private byte[] decodeProfilePhoto(final Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof byte[]) {
+            return (byte[]) value;
+        }
+        if (value instanceof String) {
+            String stringValue = (String) value;
+            if (stringValue.isBlank()) {
+                return null;
+            }
+            try {
+                return Base64.getDecoder().decode(stringValue);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid base64 profile photo payload", e);
+                return null;
+            }
+        }
+        log.warn("Unsupported profile photo payload type: {}",
+                value.getClass());
+        return null;
     }
 }

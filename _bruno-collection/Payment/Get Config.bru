@@ -1,0 +1,20 @@
+meta {
+  name: Get Config
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/payments/config
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Stripe config retrieved successfully');
+    console.log('🔑 Publishable Key:', res.body.publishableKey);
+  } else {
+    console.error('❌ Failed to get config:', res.status, res.body);
+  }
+}

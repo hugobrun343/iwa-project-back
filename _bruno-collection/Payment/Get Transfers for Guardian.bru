@@ -1,0 +1,27 @@
+meta {
+  name: Get Transfers for Guardian
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{GATEWAY_URL}}/api/payments/connect/transfers/{{GUARDIAN_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Transfers retrieved successfully');
+    console.log('💰 Number of transfers:', res.body.transfers?.length || 0);
+    if (res.body.transfers && res.body.transfers.length > 0) {
+      console.log('📋 First transfer:', res.body.transfers[0]);
+    }
+  } else {
+    console.error('❌ Failed to get transfers:', res.status, res.body);
+  }
+}

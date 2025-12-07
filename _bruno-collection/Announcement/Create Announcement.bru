@@ -10,12 +10,12 @@ post {
   auth: bearer
 }
 
-auth:bearer {
-  token: {{ACCESS_TOKEN}}
-}
-
 headers {
   X-Username: {{USERNAME}}
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
 }
 
 body:json {
@@ -25,8 +25,8 @@ body:json {
     "description": "Need daily assistance for an elderly person including meal preparation and companionship.",
     "specificInstructions": "Ring the bell upon arrival. Pet-friendly caregiver required.",
     "careTypeLabel": "Home Care",
-    "startDate": "2025-11-01",
-    "endDate": "2025-11-10",
+    "startDate": "2025-11-28",
+    "endDate": "2025-11-30",
     "visitFrequency": "Daily",
     "remuneration": 50.0,
     "identityVerificationRequired": true,

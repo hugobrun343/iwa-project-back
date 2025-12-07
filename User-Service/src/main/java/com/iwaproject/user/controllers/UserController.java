@@ -84,8 +84,6 @@ public class UserController {
     @PostMapping("/users")
     public ResponseEntity<PrivateUserDTO> createUser(
         @RequestHeader("X-Username") final String username,
-        @RequestHeader(value = "X-Email", required = false)
-            final String emailHeader,
             @RequestBody final Map<String, Object> payload) {
 
         kafkaLogService.info(LOGGER_NAME,
@@ -102,13 +100,6 @@ public class UserController {
 
             User created = userService.createUserProfile(username, payload);
             PrivateUserDTO dto = mapToPrivateUserDTO(created);
-
-            // Prefer email propagated by Gateway, fallback to Keycloak lookup
-            String email = (emailHeader != null && !emailHeader.isEmpty())
-                    ? emailHeader : userService.getUserEmail(username);
-            if (email != null && !email.isEmpty()) {
-                dto.setEmail(email);
-            }
 
             return ResponseEntity.created(
                             URI.create("/api/users/" + username))
@@ -154,8 +145,6 @@ public class UserController {
     public ResponseEntity<PrivateUserDTO> getMyProfile(
         @RequestHeader(value = "X-Username", required = false)
             final String usernameHeader,
-        @RequestHeader(value = "X-Email", required = false)
-            final String emailHeader,
         @RequestParam(value = "username", required = false)
             final String usernameParam) {
         String username = (usernameParam != null && !usernameParam.isEmpty())
@@ -179,25 +168,20 @@ public class UserController {
         User user = userOpt.get();
         PrivateUserDTO dto = mapToPrivateUserDTO(user);
 
-        // Prefer email propagated by Gateway, fallback to Keycloak lookup
-        String email = (emailHeader != null && !emailHeader.isEmpty())
-            ? emailHeader : userService.getUserEmail(username);
         kafkaLogService.debug(
             LOGGER_NAME,
             "user data: username=" + dto.getUsername()
-                + ", email=" + email
+                + ", email=" + dto.getEmail()
                 + ", firstName=" + dto.getFirstName()
                 + ", lastName=" + dto.getLastName()
                 + ", phoneNumber=" + dto.getPhoneNumber()
                 + ", location=" + dto.getLocation()
                 + ", description=" + dto.getDescription()
-                + ", profilePhoto=" + dto.getProfilePhoto()
+                + ", profilePhoto=" + formatProfilePhotoLog(
+                        dto.getProfilePhoto())
                 + ", identityVerification=" + dto.getIdentityVerification()
                 + ", preferences=" + dto.getPreferences()
                 + ", registrationDate=" + dto.getRegistrationDate());
-        if (email != null && !email.isEmpty()) {
-            dto.setEmail(email);
-        }
         return ResponseEntity.ok(dto);
     }
 
@@ -235,8 +219,6 @@ public class UserController {
     @PatchMapping("/users/me")
     public ResponseEntity<PrivateUserDTO> updateMyProfile(
         @RequestHeader("X-Username") final String username,
-        @RequestHeader(value = "X-Email", required = false)
-            final String emailHeader,
             @RequestBody final Map<String, Object> updates) {
 
         kafkaLogService.info(LOGGER_NAME,
@@ -245,12 +227,7 @@ public class UserController {
         try {
             User updatedUser = userService.updateUserProfile(username, updates);
             PrivateUserDTO dto = mapToPrivateUserDTO(updatedUser);
-            // Include email if available
-            String email = (emailHeader != null && !emailHeader.isEmpty())
-                ? emailHeader : userService.getUserEmail(username);
-            if (email != null && !email.isEmpty()) {
-                dto.setEmail(email);
-            }
+            
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
             kafkaLogService.error(LOGGER_NAME,
@@ -427,6 +404,7 @@ public class UserController {
     private PrivateUserDTO mapToPrivateUserDTO(final User user) {
         PrivateUserDTO dto = new PrivateUserDTO();
         dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
         dto.setFirstName(user.getFirstName());
         dto.setLastName(user.getLastName());
         dto.setPhoneNumber(user.getPhoneNumber());
@@ -456,5 +434,18 @@ public class UserController {
         dto.setIdentityVerification(user.getIdentityVerification());
         dto.setRegistrationDate(user.getRegistrationDate());
         return dto;
+    }
+
+    /**
+     * Provide readable info about profile photo contents for logs.
+     *
+     * @param data profile photo bytes
+     * @return readable description
+     */
+    private String formatProfilePhotoLog(final byte[] data) {
+        if (data == null) {
+            return "null";
+        }
+        return data.length + " bytes";
     }
 }

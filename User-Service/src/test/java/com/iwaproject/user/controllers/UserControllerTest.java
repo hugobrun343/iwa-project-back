@@ -24,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -331,7 +332,8 @@ class UserControllerTest {
         user.setPhoneNumber("1234567890");
         user.setLocation("Paris");
         user.setDescription("Test user");
-        user.setProfilePhoto("photo.jpg");
+        user.setProfilePhoto("photo.jpg"
+                .getBytes(StandardCharsets.UTF_8));
         user.setIdentityVerification(false);
         user.setPreferences("{}");
         user.setRegistrationDate(LocalDateTime.now());

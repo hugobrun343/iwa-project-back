@@ -24,7 +24,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/health",
             "/actuator/health",
             "/v3/api-docs",
-            "/swagger-ui"
+            "/swagger-ui",
+            "/api/payments/config"
     );
 
     /**
@@ -38,6 +39,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(final ServerWebExchange exchange,
                              final GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
+
+        // Skip JWT validation for OPTIONS requests (CORS preflight)
+        if (exchange.getRequest().getMethod() == org.springframework.http.HttpMethod.OPTIONS) {
+            log.debug("Skipping JWT validation for OPTIONS request: {}", path);
+            return chain.filter(exchange);
+        }
 
         // Skip JWT validation for public endpoints
         if (isPublicPath(path)) {

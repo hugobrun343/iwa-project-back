@@ -9,6 +9,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,10 +36,11 @@ public class Image {
     private Announcement announcement;
 
     /**
-     * Image URL.
+     * Image binary payload.
      */
-    @Column(nullable = false)
-    private String imageUrl;
+    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column(name = "image_blob", nullable = false, columnDefinition = "BYTEA")
+    private byte[] imageBlob;
 
     /**
      * Is private.

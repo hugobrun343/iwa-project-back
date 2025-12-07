@@ -40,9 +40,9 @@ public class PublicUserDTO {
     private String description;
 
     /**
-     * Profile photo URL.
+     * Profile photo binary blob (base64-encoded in JSON).
      */
-    private String profilePhoto;
+    private byte[] profilePhoto;
 
     /**
      * Identity verification status.

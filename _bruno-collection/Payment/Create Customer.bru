@@ -1,0 +1,34 @@
+meta {
+  name: Create Customer
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{GATEWAY_URL}}/api/payments/create-customer
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "email": "customer@example.com",
+    "name": "John Doe",
+    "phone": "+33123456789"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    console.log('✅ Customer created successfully');
+    console.log('👤 Customer ID:', res.body.customerId);
+    console.log('📧 Email:', res.body.email);
+    bruno.setVar('STRIPE_CUSTOMER_ID', res.body.customerId);
+  } else {
+    console.error('❌ Failed to create customer:', res.status, res.body);
+  }
+}

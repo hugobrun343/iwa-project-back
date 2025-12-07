@@ -11,11 +11,15 @@ get {
 }
 
 params:path {
-  username: axel
+  username: {{USERNAME}}
 }
 
 auth:bearer {
   token: {{ACCESS_TOKEN}}
+}
+
+headers {
+  X-Username: {{USERNAME}}
 }
 
 script:post-response {
@@ -34,13 +38,16 @@ script:post-response {
   }
 
   if (res.status === 200 && typeof body.complete !== 'undefined') {
-    console.log(`✅ Profile completeness for ${body.username}: ${body.complete}`);
+    console.log(`✅ Profile completeness check successful`);
+    console.log(`👤 Username: ${body.username}`);
+    console.log(`📋 Profile complete: ${body.complete ? '✅ Yes' : '❌ No'}`);
   } else if (res.status === 404) {
     console.error('❌ User not found');
   } else if (res.status === 400) {
     console.error('❌ Bad request');
   } else {
     const shown = typeof raw === 'string' ? raw : JSON.stringify(raw);
-    console.error(`❌ Unexpected: ${res.status} ${shown}`);
+    console.error(`❌ Unexpected status: ${res.status}`);
+    console.error(`Response: ${shown}`);
   }
 }

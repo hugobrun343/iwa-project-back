@@ -184,7 +184,7 @@ public class AnnouncementMapper {
 
         ImageDto dto = new ImageDto();
         dto.setId(image.getId());
-        dto.setImageUrl(image.getImageUrl());
+        dto.setImageBlob(image.getImageBlob());
 
         return dto;
     }
