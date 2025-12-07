@@ -43,7 +43,31 @@ cd iwa-project-back
 cp .env.example .env
 ```
 
-3. Start all services:
+3. Configure Keycloak client secret:
+   - Start Keycloak service:
+   ```bash
+   docker-compose up -d keycloak-postgres keycloak
+   ```
+   - Wait for Keycloak to start (about 30 seconds), then open http://localhost:8080
+   - Login with:
+     - Username: `admin`
+     - Password: `admin123`
+   - Navigate to **Clients** in the left sidebar
+     ![Step 1: Navigate to Clients](docs/screenshots/tuto1.png)
+   - Click on **iwa-client** in the clients list
+     ![Step 2: Select iwa-client](docs/screenshots/tuto2.png)
+   - Scroll down to **Capability config** section
+   - Enable **Client authentication** (toggle ON)
+   - Enable **Authorization** (toggle ON)
+   - Click **Save**
+     ![Step 3: Enable Client authentication and Authorization](docs/screenshots/tuto3.png)
+   - Go to the **Credentials** tab
+   - Copy the **Client Secret** value
+     ![Step 4: Copy Client Secret](docs/screenshots/tuto4.png)
+   - Paste it in your `.env` file as the value for `KEYCLOAK_CLIENT_SECRET`
+     ![Step 5: Update .env file](docs/screenshots/tuto5.png)
+
+4. Start all services:
 ```bash
 docker-compose up -d
 ```
@@ -81,3 +105,7 @@ The project includes a Bruno collection for API testing. See `_bruno-collection/
 - **Kibana**: http://localhost:5601 (for log visualization)
 - **Keycloak Admin**: http://localhost:8080
 - **Gateway Health**: http://localhost:8085/actuator/health
+
+## Documentation
+
+Screenshots and visual guides are available in the `docs/screenshots/` directory.

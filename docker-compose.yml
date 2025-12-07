@@ -242,6 +242,8 @@ services:
       KC_DB_PASSWORD: keycloak_password
       KC_HOSTNAME_STRICT: false
       KC_HTTP_ENABLED: true
+      KC_FEATURES: scripts
+      KC_SCRIPT_FEATURE_ENABLED: "true"
     ports:
       - "8080:8080"
     volumes:

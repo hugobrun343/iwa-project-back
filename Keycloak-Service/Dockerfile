@@ -21,6 +21,7 @@ FROM quay.io/keycloak/keycloak:latest AS builder
 ENV KC_DB=postgres
 ENV KC_HEALTH_ENABLED=true
 ENV KC_METRICS_ENABLED=true
+ENV KC_FEATURES=scripts
 
 WORKDIR /opt/keycloak
 
@@ -44,6 +45,7 @@ COPY keycloak.json /opt/keycloak/data/import/keycloak.json
 ENV KC_DB=postgres
 ENV KC_HEALTH_ENABLED=true
 ENV KC_METRICS_ENABLED=true
+ENV KC_FEATURES=scripts
 
 # Set the entrypoint and default command
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
